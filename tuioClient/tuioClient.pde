@@ -1,9 +1,15 @@
 /*
-    TUIO processing demo - part of the reacTIVision project
+
+    A client to recieve data from tangibles using the TUIO protocol,
+    read dataset from CSV files and enable tangible interaction with
+    multivariate data.
+    
+    A project by Sagar Raut <sagarraut@gatech.edu> and Alex Godwin <alex.godwin@gatech.edu>
+    
+    Based on the TUIO processing demo - part of the reacTIVision project
+    by Martin Kaltenbrunner
     http://reactivision.sourceforge.net/
-
-    Copyright (c) 2005-2009 Martin Kaltenbrunner <mkalten@iua.upf.edu>
-
+    
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation; either version 2 of the License, or
@@ -32,6 +38,8 @@ float object_size = 60;
 float table_size = 760;
 float scale_factor = 1;
 PFont font;
+ReadCSV iris;
+
 
 void setup()
 {
@@ -52,6 +60,9 @@ void setup()
   // since we add "this" class as an argument the TuioProcessing class expects
   // an implementation of the TUIO callback methods (see below)
   tuioClient  = new TuioProcessing(this);
+  
+  //Read the iris dataset csv
+  iris = new ReadCSV("data/iris.csv");
 }
 
 // within the draw method we retrieve a Vector (List) of TuioObject and TuioCursor (polling)
@@ -61,7 +72,9 @@ void draw()
   background(255);
   textFont(font,18*scale_factor);
   float obj_size = object_size*scale_factor; 
-  float cur_size = cursor_size*scale_factor; 
+  float cur_size = cursor_size*scale_factor;
+ 
+  println(iris.getEntry(2,1)); 
    
   Vector tuioObjectList = tuioClient.getTuioObjects();
   for (int i=0;i<tuioObjectList.size();i++) {
