@@ -38,13 +38,14 @@ float object_size = 60;
 float table_size = 760;
 float scale_factor = 1;
 PFont font;
-ReadCSV iris;
-
+ReadCSV cereals;
+int screenWidth = 1024, screenHeight = 768;
+float[][] columns;
 
 void setup()
 {
   //size(screen.width,screen.height);
-  size(640,480);
+  size(screenWidth,screenHeight);
   noStroke();
   fill(0);
   
@@ -61,8 +62,10 @@ void setup()
   // an implementation of the TUIO callback methods (see below)
   tuioClient  = new TuioProcessing(this);
   
-  //Read the iris dataset csv
-  iris = new ReadCSV("data/iris.csv");
+  //Read the cereals dataset csv
+  cereals = new ReadCSV("data/cereals.csv");
+  columns = cereals.getTwoFields(4,5);
+  cereals.getPoints();
 }
 
 // within the draw method we retrieve a Vector (List) of TuioObject and TuioCursor (polling)
@@ -74,7 +77,18 @@ void draw()
   float obj_size = object_size*scale_factor; 
   float cur_size = cursor_size*scale_factor;
  
-  println(iris.getEntry(2,1)); 
+  
+ fill(255,0,0);
+ stroke(255,0,0);
+ 
+ text("No of points:"+cereals.length,10,30);
+for(int i = 0; i < cereals.length; i++){
+  strokeWeight (10 - (i*10)/cereals.length);
+  stroke(i*3,i*2,i);
+  float x = (columns[i][0]*screenWidth)/200;
+  float y = (columns[i][1]*screenHeight)/8;
+  point(x,y);
+} 
    
   Vector tuioObjectList = tuioClient.getTuioObjects();
   for (int i=0;i<tuioObjectList.size();i++) {
