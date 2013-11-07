@@ -5,11 +5,15 @@ class ReadCSV {
   String filePath;
   int length;
   String[] lines;
-
+  float[] max = new float[9];
+  float[] min = new float[9];
+  float[] range = new float[9];
   ReadCSV(String path) {
     filePath = path;
     lines = loadStrings(filePath);
     length = lines.length-1;
+    max = new float[9];
+    min = new float[9];
   }
 
   String getEntry(int line, int column) {
@@ -38,24 +42,42 @@ class ReadCSV {
 
     DataPoint[] points = new DataPoint[length];
 
+
+    String[] tokens1 = split(lines[1], ",");
+    for (int k = 0; k < 9; k++) {
+      max[k] = 0;
+      min[k] = Float.parseFloat(tokens1[k+3]);
+    }
+
     println("Loading points..");
+
     for (int i = 0; i<length; i++) {
 
       String[] tokens = split(lines[i+1], ",");
+      float[] values = new float[9];
 
-      float cal = Float.parseFloat(tokens[3]);
-      float pro = Float.parseFloat(tokens[4]);
-      float fat = Float.parseFloat(tokens[5]);
-      float sod = Float.parseFloat(tokens[6]);
-      float fib = Float.parseFloat(tokens[7]);
-      float car = Float.parseFloat(tokens[8]);
-      float sug = Float.parseFloat(tokens[9]);
-      float pot = Float.parseFloat(tokens[10]);
-      float vit = Float.parseFloat(tokens[11]);
+      for (int k = 0, j = 3; k < 9; k++, j++) { 
+        values[k] = Float.parseFloat(tokens[j]);
+
+        if (values[k] > max[k]) {
+          max[k] = values[k];
+        }
+        if (values[k] < min[k]) {
+          min[k] = values[k];
+        }
+      }
 
 
-      points[i] = new DataPoint(cal, pro, fat, sod, fib, car, sug, pot, vit);
+
+      points[i] = new DataPoint(values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8]);
     }
+
+    for (int k = 0; k < 9; k++) {
+      range[k] = max[k] - min[k];
+      print("max: "+ max[k]);
+      println("min: "+ min[k]);
+    }
+
     println(length + " Points loaded");
 
     return points;

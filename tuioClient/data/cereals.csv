@@ -50,7 +50,7 @@ Shredded Wheat 'n'Bran,N,C,90,3,0,0,4,19,0,140,0
 Shredded Wheat spoon size,N,C,90,3,0,0,3,20,0,120,0
 Strawberry Fruit Wheats,N,C,90,2,0,15,3,15,5,90,25
 Bran Flakes,P,C,90,3,0,210,5,13,5,190,25
-"Fruit & Fibre Dates Walnuts and Oats",P,C,120,3,2,160,5,12,10,200,25
+Fruit & Fibre Dates Walnuts and Oats,P,C,120,3,2,160,5,12,10,200,25
 Fruity Pebbles,P,C,110,1,1,135,0,13,12,25,25
 Golden Crisp,P,C,100,2,0,45,0,11,15,40,25
 Grape Nuts Flakes,P,C,100,3,1,140,3,15,5,85,25
@@ -65,14 +65,14 @@ Life,Q,C,100,4,2,150,2,12,6,95,25
 Puffed Rice,Q,C,50,1,0,0,0,13,0,15,0
 Puffed Wheat,Q,C,50,2,0,0,1,10,0,50,0
 Quaker Oat Squares,Q,C,100,4,1,135,2,14,6,110,25
-Almond Delight,R,C,110,2,2,200,1,14,8,-1,25
+Almond Delight,R,C,110,2,2,200,1,14,8,0,25
 Bran Chex,R,C,90,2,1,200,4,15,6,125,25
 Corn Chex,R,C,110,2,0,280,0,22,3,25,25
 Double Chex,R,C,100,2,0,190,1,18,5,80,25
-"Muesli Raisins Dates & Almonds",R,C,150,4,3,95,3,16,11,170,25
-"Muesli Raisins Peaches & Pecans",R,C,150,4,3,150,3,16,11,170,25
+Muesli Raisins Dates & Almonds,R,C,150,4,3,95,3,16,11,170,25
+Muesli Raisins Peaches & Pecans,R,C,150,4,3,150,3,16,11,170,25
 Rice Chex,R,C,110,1,0,240,0,23,2,30,25
 Wheat Chex,R,C,100,3,1,230,3,17,3,115,25
 Maypo,A,H,100,4,1,0,0,16,3,95,25
-Cream of Wheat (Quick),N,H,100,3,0,80,1,21,0,-1,0
-Quaker Oatmeal,Q,H,100,5,2,0,2.7,-1,-1,110,0
+Cream of Wheat (Quick),N,H,100,3,0,80,1,21,0,0,0
+Quaker Oatmeal,Q,H,100,5,2,0,2.7,0,0,110,0

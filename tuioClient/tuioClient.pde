@@ -46,6 +46,8 @@ Boolean fiducialIn = false;
 int fiducialId = 0;
 float speed = 0.3;
 
+HashMap<Integer, String> idToAttr;
+
 void setup()
 {
   //size(screen.width,screen.height);
@@ -66,6 +68,17 @@ void setup()
   // an implementation of the TUIO callback methods (see below)
   tuioClient  = new TuioProcessing(this);
 
+  idToAttr = new HashMap<Integer, String>();
+  idToAttr.put(1, "calories"); 
+  idToAttr.put(2, "proteins"); 
+  idToAttr.put(3, "fats"); 
+  idToAttr.put(4, "sodium"); 
+  idToAttr.put(5, "fiber"); 
+  idToAttr.put(6, "carbs"); 
+  idToAttr.put(7, "sugars"); 
+  idToAttr.put(8, "potassium"); 
+  idToAttr.put(9, "vitamins");
+
   //Read the cereals dataset csv
   cereals = new ReadCSV("data/cereals.csv");
   columns = cereals.getTwoFields(4, 5);
@@ -73,6 +86,7 @@ void setup()
   datapoints = cereals.getPoints();
   for (int i = 0; i < datapoints.length; i++) {
     datapoints[i].setloc("fats", "fiber", screenWidth/2);
+    datapoints[i].fillNorm(cereals.min, cereals.range);
   }
 }
 
@@ -120,7 +134,7 @@ void draw()
     rect(-obj_size/2, -obj_size/2, obj_size, obj_size);
     popMatrix();
     fill(255);
-    text(""+tobj.getSymbolID(), tobj.getScreenX(width), tobj.getScreenY(height));
+    text(""+idToAttr.get(tobj.getSymbolID()), tobj.getScreenX(width)-obj_size/2, tobj.getScreenY(height));
   }
 
   Vector tuioCursorList = tuioClient.getTuioCursors();
@@ -151,12 +165,13 @@ void draw()
 
 // called when an object is added to the scene
 void addTuioObject(TuioObject tobj) {
-  println("add object "+tobj.getSymbolID()+" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" "+tobj.getAngle());
+  int id = tobj.getSymbolID();
+  println("add object "+ id +" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" "+tobj.getAngle());
   pt fidPt = P(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
 
   //Calculate the vector from each datapoint to the fiducial
   for (int i = 0; i < datapoints.length; i++) {
-    datapoints[i].setvec(fidPt, "proteins");
+    datapoints[i].setvec(fidPt, idToAttr.get(id));
   }
 
   //Set a flag indicating that a fiducial is present
@@ -173,13 +188,15 @@ void removeTuioObject(TuioObject tobj) {
 
 // called when an object is moved
 void updateTuioObject (TuioObject tobj) {
-  println("update object "+tobj.getSymbolID()+" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" "+tobj.getAngle()
+  int id = tobj.getSymbolID();
+
+  println("update object "+id+" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" "+tobj.getAngle()
     +" "+tobj.getMotionSpeed()+" "+tobj.getRotationSpeed()+" "+tobj.getMotionAccel()+" "+tobj.getRotationAccel());
   pt fidPt = P(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
 
   //Calculate the vector from each datapoint to the fiducial and move it
   for (int i = 0; i < datapoints.length; i++) {
-    datapoints[i].setvec(fidPt, "proteins");
+    datapoints[i].setvec(fidPt, idToAttr.get(id));
     datapoints[i].move(speed);
   }
 }
