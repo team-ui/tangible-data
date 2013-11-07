@@ -169,6 +169,7 @@ void addTuioObject(TuioObject tobj) {
   println("add object "+ id +" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" "+tobj.getAngle());
   pt fidPt = P(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
 
+  if(id < 9 && id > 0){
   //Calculate the vector from each datapoint to the fiducial
   for (int i = 0; i < datapoints.length; i++) {
     datapoints[i].setvec(fidPt, idToAttr.get(id));
@@ -177,6 +178,7 @@ void addTuioObject(TuioObject tobj) {
   //Set a flag indicating that a fiducial is present
   fiducialIn = true;
   fiducialId = tobj.getSymbolID();
+  }
 }
 
 // called when an object is removed from the scene
@@ -194,10 +196,12 @@ void updateTuioObject (TuioObject tobj) {
     +" "+tobj.getMotionSpeed()+" "+tobj.getRotationSpeed()+" "+tobj.getMotionAccel()+" "+tobj.getRotationAccel());
   pt fidPt = P(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
 
+  if(id<9 && id>0){
   //Calculate the vector from each datapoint to the fiducial and move it
   for (int i = 0; i < datapoints.length; i++) {
     datapoints[i].setvec(fidPt, idToAttr.get(id));
     datapoints[i].move(speed);
+  }
   }
 }
 
