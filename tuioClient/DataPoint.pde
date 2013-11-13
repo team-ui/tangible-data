@@ -1,18 +1,23 @@
 class DataPoint {
   pt loc;
+  pt dest; 
   vec v;  
   HashMap<String, Float> dataval;
   HashMap<String, Float> normdata;
 
   // CREATE
   DataPoint() {
-    loc = new pt();
+    loc = new pt();    
+    dest = P(loc);
+    v = U(loc, dest);
   }
 
 
   DataPoint(float cal, float pro, float fat, float sod, float fib, float car, float sug, float pot, float vit) {
     //normalizing values
     loc = new pt();     //initialize the location as the point
+    dest = P(loc);
+    v = U(loc, dest);
     dataval = new HashMap<String, Float>();
 
     dataval.put("calories", cal);
@@ -53,6 +58,11 @@ class DataPoint {
       println(normdata.get(key));
     }
   }
+  
+  //Get normalized value for a DataPoint
+  float getNormalizedValue(String attr){
+    return normdata.get(attr);
+  }
 
   //Specify which data valued to use as a co-ordinate
   void setloc(String colX, String colY, float bias) {
@@ -88,10 +98,17 @@ class DataPoint {
 
     show(loc, v);
   }
-
+  
+  //Update the destination to the newest
+  void updateAndMove(float speed){
+    v = U(loc, dest);
+    loc = P(loc, mul(v, speed));      
+  }
+  
   //Move the datapoint in the direction of the fiducial
   void move(float speed) {
     loc = P(loc, mul(v, speed));
   }
+  
 }
 

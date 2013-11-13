@@ -42,6 +42,7 @@ ReadCSV cereals;
 int screenWidth = 1024, screenHeight = 768;
 float[][] columns;
 DataPoint[] datapoints;
+ArrayList<Axis> axisList;
 Boolean fiducialIn = false;
 int fiducialId = 0;
 float speed = 0.3;
@@ -58,6 +59,7 @@ void setup()
   loop();
   frameRate(30);
   //noLoop();
+  axisList = new ArrayList<Axis>();
 
   hint(ENABLE_NATIVE_FONTS);
   font = createFont("Arial", 18);
@@ -78,6 +80,9 @@ void setup()
   idToAttr.put(7, "sugars"); 
   idToAttr.put(8, "potassium"); 
   idToAttr.put(9, "vitamins");
+  idToAttr.put(111, "calories"); 
+  idToAttr.put(112, "proteins"); 
+  idToAttr.put(113, "fats");
 
   //Read the cereals dataset csv
   cereals = new ReadCSV("data/cereals.csv");
@@ -111,7 +116,7 @@ void draw()
     //  stroke(i*3,i*2,i);
     //  float x = (columns[i][0]*screenWidth)/200;
     //  float y = (columns[i][1]*screenHeight)/8;
-
+    datapoints[i].move(speed);
     datapoints[i].showpt(screenWidth/2);
   }
 
@@ -121,8 +126,7 @@ void draw()
       datapoints[i].showvec();
     }
   }
-
-
+  
   Vector tuioObjectList = tuioClient.getTuioObjects();
   for (int i=0;i<tuioObjectList.size();i++) {
     TuioObject tobj = (TuioObject)tuioObjectList.elementAt(i);
@@ -169,16 +173,39 @@ void addTuioObject(TuioObject tobj) {
   println("add object "+ id +" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" "+tobj.getAngle());
   pt fidPt = P(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
 
-  if(id < 9 && id > 0){
-  //Calculate the vector from each datapoint to the fiducial
-  for (int i = 0; i < datapoints.length; i++) {
-    datapoints[i].setvec(fidPt, idToAttr.get(id));
-  }
+  if (id < 9 && id > 0) {
+    //Calculate the vector from each datapoint to the fiducial
+    for (int i = 0; i < datapoints.length; i++) {
+      datapoints[i].setvec(fidPt, idToAttr.get(id));
+    }
 
-  //Set a flag indicating that a fiducial is present
-  fiducialIn = true;
-  fiducialId = tobj.getSymbolID();
+    //Set a flag indicating that a fiducial is present
+    fiducialIn = true;
+    fiducialId = tobj.getSymbolID();
+  }  
+  else if (id > 110 && id < 119) {
+    TuioObject axisStart = checkTuioSymbolIDPresent(id);
+    if (axisStart != null)
+      println("Axis added");
+    if (id < 119 && id > 110) {
+      //Calculate the vector from each datapoint to the fiducial axis
+      axisList.add(new Axis (axisStart, tobj));
+    }
   }
+}
+
+//Used to determine if a symbol with the same ID is present
+//to establish that an axis has been dropped onto the display
+TuioObject checkTuioSymbolIDPresent(int id) {
+  Vector<TuioObject> v = tuioClient.getTuioObjects();
+  TuioObject found = null;
+  for (TuioObject t:v) {
+    if (t.getSymbolID()==id) {
+      found = t;           
+      break;
+    }
+  }
+  return found;
 }
 
 // called when an object is removed from the scene
@@ -186,6 +213,13 @@ void removeTuioObject(TuioObject tobj) {
   println("remove object "+tobj.getSymbolID()+" ("+tobj.getSessionID()+")");
   fiducialIn = false;
   fiducialId = 0;
+  for(Axis a : axisList){
+    if(a.symbolID == tobj.getSymbolID()){
+      axisList.remove(a);
+      println("Axis removed");
+      break;
+    }
+  }
 }
 
 // called when an object is moved
@@ -196,12 +230,29 @@ void updateTuioObject (TuioObject tobj) {
     +" "+tobj.getMotionSpeed()+" "+tobj.getRotationSpeed()+" "+tobj.getMotionAccel()+" "+tobj.getRotationAccel());
   pt fidPt = P(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
 
-  if(id<9 && id>0){
-  //Calculate the vector from each datapoint to the fiducial and move it
-  for (int i = 0; i < datapoints.length; i++) {
-    datapoints[i].setvec(fidPt, idToAttr.get(id));
-    datapoints[i].move(speed);
+  if (id<9 && id>0) {
+    //Calculate the vector from each datapoint to the fiducial and move it
+    for (int i = 0; i < datapoints.length; i++) {
+      datapoints[i].setvec(fidPt, idToAttr.get(id));
+//      datapoints[i].move(speed);
+    }
   }
+  else if (id<119 && id>110) {
+    Axis axis = null;
+    for(Axis a: axisList){
+      if(a.symbolID == tobj.getSymbolID()){
+       axis = a;
+       break; 
+      }
+    }
+    if(axis != null){
+      for (int i = 0; i < datapoints.length; i++) {
+        datapoints[i].setvec(axis.getDestinationAlongAxis(datapoints[i]), idToAttr.get(id));
+//        datapoints[i].move(speed);
+      }
+    }
+    else
+      println("Axis null!!!!");
   }
 }
 
@@ -225,5 +276,30 @@ void removeTuioCursor(TuioCursor tcur) {
 // representing the end of an image frame
 void refresh(TuioTime bundleTime) { 
   redraw();
+}
+
+public class Axis {
+  TuioObject start, end;
+  int symbolID;
+  float x0, y0, x1, x2;
+  pt xy0, xy1;
+  String attribute; 
+  
+  public Axis (TuioObject obj0, TuioObject obj1) {
+    symbolID = obj0.getSymbolID();
+    start=obj0; end = obj1;
+    xy0 = P(start.getX()*screenWidth, start.getY()*screenHeight);
+    xy1 = P(end.getX()*screenWidth, end.getY()*screenHeight);
+    attribute = idToAttr.get(symbolID);
+  }
+  
+  pt getDestinationAlongAxis(DataPoint point){
+    return L(xy0, xy1, point.getNormalizedValue(attribute));
+  }
+  
+  String print(){
+    return attribute + ' ' + xy0 + ' ' + xy1;
+  }
+  
 }
 
