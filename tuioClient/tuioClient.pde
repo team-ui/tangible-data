@@ -103,24 +103,20 @@ void draw()
   fill(255, 0, 0);
   stroke(255, 0, 0);
 
-  text("No of points:"+datapoints.length, 10, 30);
+  text("No of points:"+datapoints.length+", Speed = "+ (speed*10), 10, 30);
 
   //Loop to display each datapoint on screen
   for (int i = 0; i < datapoints.length; i++) {
-    //  strokeWeight (10 - (i*10)/cereals.length);
-    //  stroke(i*3,i*2,i);
-    //  float x = (columns[i][0]*screenWidth)/200;
-    //  float y = (columns[i][1]*screenHeight)/8;
-
-    datapoints[i].showpt(screenWidth/2);
+    
+    datapoints[i].showpt();
   }
 
   //Show the scaled vector from each datapoint to the fiducial
-  if (fiducialIn) {
-    for (int i = 0; i < datapoints.length; i++) {
-      datapoints[i].showvec();
-    }
-  }
+//  if (fiducialIn) {
+//    for (int i = 0; i < datapoints.length; i++) {
+//      datapoints[i].showvec();
+//    }
+//  }
 
 
   Vector tuioObjectList = tuioClient.getTuioObjects();
@@ -225,5 +221,18 @@ void removeTuioCursor(TuioCursor tcur) {
 // representing the end of an image frame
 void refresh(TuioTime bundleTime) { 
   redraw();
+}
+
+void keyPressed(){
+  if (key == CODED){
+  if(keyCode == UP ){
+    speed += 0.1;
+  }
+  
+  if(keyCode == DOWN ){
+    speed -= 0.1;
+  }
+  }
+
 }
 

@@ -67,13 +67,13 @@ class DataPoint {
     loc = P(X, Y);
   }
 
-  void showpt() {
-    ellipse(loc.x, loc.y, 6, 6);
-  }
+  
 
   //move the points by a certain value
-  void showpt(float bias) {
-    ellipse(loc.x, loc.y, 6, 6);
+  void showpt() {
+    stroke(0);
+    strokeWeight(2);
+    ellipse(loc.x, loc.y, 10, 10);
   }
 
   //accepts the center of the fiducial, and sets a vector from  the current point to the fiducial
