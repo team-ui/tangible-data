@@ -29,6 +29,7 @@
 // and declare a TuioProcessing client variable
 import TUIO.*;
 import java.util.*;
+
 TuioProcessing tuioClient;
 
 // these are some helper variables which are used
@@ -42,9 +43,12 @@ ReadCSV cereals;
 int screenWidth = 1024, screenHeight = 768;
 float[][] columns;
 DataPoint[] datapoints;
+
+ArrayList<Axis> axisList;
 Boolean fiducialIn = false;
 int fiducialId = 0;
-float speed = 0.3;
+float speed = 3;
+
 
 HashMap<Integer, String> idToAttr;
 
@@ -58,6 +62,7 @@ void setup()
   loop();
   frameRate(30);
   //noLoop();
+  axisList = new ArrayList<Axis>();
 
   hint(ENABLE_NATIVE_FONTS);
   font = createFont("Arial", 18);
@@ -69,6 +74,7 @@ void setup()
   tuioClient  = new TuioProcessing(this);
 
   idToAttr = new HashMap<Integer, String>();
+
   idToAttr.put(1, "calories"); 
   idToAttr.put(2, "proteins"); 
   idToAttr.put(3, "fats"); 
@@ -78,6 +84,11 @@ void setup()
   idToAttr.put(7, "sugars"); 
   idToAttr.put(8, "potassium"); 
   idToAttr.put(9, "vitamins");
+
+  idToAttr.put(111, "calories"); 
+  idToAttr.put(112, "proteins"); 
+  idToAttr.put(113, "fats");
+
 
   //Read the cereals dataset csv
   cereals = new ReadCSV("data/cereals.csv");
@@ -100,28 +111,18 @@ void draw()
   float cur_size = cursor_size*scale_factor;
 
 
-  fill(255, 0, 0);
-  stroke(255, 0, 0);
 
-  text("No of points:"+datapoints.length+", Speed = "+ (speed*10), 10, 30);
-
-  //Loop to display each datapoint on screen
-  for (int i = 0; i < datapoints.length; i++) {
-    
-    datapoints[i].showpt();
-  }
-
-  //Show the scaled vector from each datapoint to the fiducial
-//  if (fiducialIn) {
-//    for (int i = 0; i < datapoints.length; i++) {
-//      datapoints[i].showvec();
-//    }
-//  }
+  text("No of points:"+datapoints.length, 10, 30);
 
 
+
+  pushStyle();
   Vector tuioObjectList = tuioClient.getTuioObjects();
   for (int i=0;i<tuioObjectList.size();i++) {
     TuioObject tobj = (TuioObject)tuioObjectList.elementAt(i);
+    int id = tobj.getSymbolID();   
+
+
     stroke(0);
     fill(0);
     pushMatrix();
@@ -133,8 +134,13 @@ void draw()
     text(""+idToAttr.get(tobj.getSymbolID()), tobj.getScreenX(width)-obj_size/2, tobj.getScreenY(height));
   }
 
+  popStyle();
+
+  pushStyle();
   Vector tuioCursorList = tuioClient.getTuioCursors();
   for (int i=0;i<tuioCursorList.size();i++) {
+
+
     TuioCursor tcur = (TuioCursor)tuioCursorList.elementAt(i);
     Vector pointList = tcur.getPath();
 
@@ -155,6 +161,37 @@ void draw()
       text(""+ tcur.getCursorID(), tcur.getScreenX(width)-5, tcur.getScreenY(height)+5);
     }
   }
+
+  popStyle();
+
+  //Loop to display each axis on screen
+  for (Axis a: axisList) {
+    a.draw();
+  }  
+
+  pushStyle();
+  fill(255, 0, 0);
+  stroke(255, 0, 0);
+  //Loop to display each datapoint on screen
+  for (int i = 0; i < datapoints.length; i++) {
+    //  strokeWeight (10 - (i*10)/cereals.length);
+    //  stroke(i*3,i*2,i);
+    //  float x = (columns[i][0]*screenWidth)/200;
+    //  float y = (columns[i][1]*screenHeight)/8;
+    //    datapoints[i].move(speed);
+    datapoints[i].updateAndMove(10);      
+    datapoints[i].showpt();
+  }
+
+
+  //Show the scaled vector from each datapoint to the fiducial
+  if (fiducialIn) {
+    for (int i = 0; i < datapoints.length; i++) {
+      datapoints[i].showvec();
+    }
+  }
+  popStyle();
+
 }
 
 // these callback methods are called whenever a TUIO event occurs
@@ -165,16 +202,135 @@ void addTuioObject(TuioObject tobj) {
   println("add object "+ id +" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" "+tobj.getAngle());
   pt fidPt = P(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
 
-  if(id < 9 && id > 0){
-  //Calculate the vector from each datapoint to the fiducial
-  for (int i = 0; i < datapoints.length; i++) {
-    datapoints[i].setvec(fidPt, idToAttr.get(id));
-  }
 
-  //Set a flag indicating that a fiducial is present
-  fiducialIn = true;
-  fiducialId = tobj.getSymbolID();
+  if (id < 9 && id > 0) {
+    //Calculate the vector from each datapoint to the fiducial
+    for (int i = 0; i < datapoints.length; i++) {
+      datapoints[i].setvec(fidPt, idToAttr.get(id));
+    }
+
+    //Set a flag indicating that a fiducial is present
+    fiducialIn = true;
+    fiducialId = tobj.getSymbolID();
   }
+  else if (id < 119 && id > 110) {
+    createAxisList();
+    generateAxisPositions();
+  }
+}
+
+//When an object is added or removed, we need to establish the current set of
+//axes on the display.
+void createAxisList() {
+  axisList.clear();
+  Vector tuioObjectList = tuioClient.getTuioObjects();
+  for (int i=0;i<tuioObjectList.size();i++) {
+    TuioObject tobj = (TuioObject)tuioObjectList.elementAt(i);
+    int id = tobj.getSymbolID();
+    if (id > 110 && id < 119) {
+      TuioObject addedObject = null;
+      for (Axis a: axisList) {
+        addedObject = a.addTuioObject(tobj);
+      }
+      if (addedObject == null) {
+        Axis axis = new Axis(tobj);
+        axisList.add(axis);
+      }
+    }
+  }
+}
+
+//Generate the coordinate positions for all dust particles and set them
+void generateAxisPositions() {
+  println("Generating axis positions outer loop");
+  if (axisList.size() == 1) {
+    println("Only one axis");
+    Axis a = axisList.get(0);
+    if (a.isFull()) 
+      for (int i = 0; i < datapoints.length; i++) {
+        datapoints[i].setDest(a.getDestinationAlongAxis(datapoints[i]));
+      }
+  }
+  else
+    for (int i = 0; i < axisList.size(); i++) {
+      Axis a = axisList.get(i); 
+
+      if (a.isFull()) {    
+        pt a0 = P(a.start.getX()*screenWidth, a.start.getY()* screenHeight);
+        pt a1 = P(a.end.getX()*screenWidth, a.end.getY()* screenHeight);
+        pt aM = P(a0, a1);
+
+        for (int j = i+1; j < axisList.size(); j++) {
+          Axis b = axisList.get(j);    
+          if (b.isFull()) {
+            println("Generating axis positions");
+            pt b0 = P(b.start.getX()*screenWidth, b.start.getY()* screenHeight);
+            pt b1 = P(b.end.getX()*screenWidth, b.end.getY()* screenHeight);
+            pt bM = P(b0, b1);
+            float d = d(aM, bM);
+            println("Distance " + d);
+            vec U = U(a0, a1);
+            vec V = U(b0, b1);
+            float dp = dot(U, V);
+            println("Testing right angle " + dp);
+            //Determine if the two axes are close to a right angle. If so, they should create a scatterplot.
+            if (d < 300 && abs(dp) < .2) {
+              if (d(a0, b0) < d(a0, b1)) {
+                pt temp = P(b0);
+                b0 = P(b1);
+                b1 = P(temp);                
+                V = U(b0, b1);
+                dp = dot(U, V);
+              }
+              else if (d(b0, a0) < d(b0, a1)) {
+                pt temp = P(a0);
+                a0 = P(a1);
+                a1 = P(temp);                
+                U = U(a0, a1);
+                dp = dot(U, V);
+              }
+              println("right angle " + dp);
+              
+//              pt v0 = P(a0.add(P(-1, a1)));
+//              pt v1 = P(b0.add(P(-1, b1)));
+//
+//              //Project the datapoint into the two dimensional space defined by the axes
+//              float[][] matrix = {
+//                {
+//                  v0.x, v1.x
+//                }
+//                , {
+//                  v0.y, v1.y
+//                }
+//              };
+
+              for (int k = 0; k < datapoints.length; k++) {
+                pt A = a.getDestinationAlongAxis(datapoints[k]);
+                pt B = b.getDestinationAlongAxis(datapoints[k]);
+
+                //                pt scoords = P(datapoints[k].getNormalizedValue(a.attribute), datapoints[k].getNormalizedValue(b.attribute));           
+                //                pt projected = P(matrix[0][0]*scoords.x+matrix[0][1]*scoords.y, matrix[1][0]*scoords.x+matrix[1][1]*scoords.y);
+                //                vec rV = R(V(projected), angle(V(P(a0,b0)))); 
+                //                projected = P(rV.x, rV.y);
+                //                projected = projected.add(P(a0,b0)); 
+                datapoints[k].setDest(A.add(B).add(P(-1, b1)));
+                //                datapoints[k].setDest(projected);
+              }
+            }      
+
+            dp = dot(U, R(V));
+            println("Testing parallel angle " + dp);
+            //Otherwise, determine if the two axes are parallel. If so, they should create a parallel coordinate plot.
+            if (abs(dp) < .2) {
+              println("parallel " + dp);
+            }
+
+            //Need to compose bounding boxes for each plot and test for collisions.
+          }
+        }
+      }
+    }
+
 }
 
 // called when an object is removed from the scene
@@ -182,22 +338,36 @@ void removeTuioObject(TuioObject tobj) {
   println("remove object "+tobj.getSymbolID()+" ("+tobj.getSessionID()+")");
   fiducialIn = false;
   fiducialId = 0;
+
+  int id = tobj.getSymbolID();
+  if (id < 119 && id > 110) {
+    createAxisList();
+    generateAxisPositions();
+  }
 }
+
+//void multMatrix(vec 
+
 
 // called when an object is moved
 void updateTuioObject (TuioObject tobj) {
   int id = tobj.getSymbolID();
 
-  println("update object "+id+" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" "+tobj.getAngle()
-    +" "+tobj.getMotionSpeed()+" "+tobj.getRotationSpeed()+" "+tobj.getMotionAccel()+" "+tobj.getRotationAccel());
-  pt fidPt = P(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
 
-  if(id<9 && id>0){
-  //Calculate the vector from each datapoint to the fiducial and move it
-  for (int i = 0; i < datapoints.length; i++) {
-    datapoints[i].setvec(fidPt, idToAttr.get(id));
-    datapoints[i].move(speed);
+  //  println("update object "+id+" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" "+tobj.getAngle()
+  //    +" "+tobj.getMotionSpeed()+" "+tobj.getRotationSpeed()+" "+tobj.getMotionAccel()+" "+tobj.getRotationAccel());
+  pt fidPt = P(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
+  //
+  if (id<9 && id>0) {
+    //Calculate the vector from each datapoint to the fiducial and move it
+    for (int i = 0; i < datapoints.length; i++) {
+      datapoints[i].setvec(fidPt, idToAttr.get(id));
+      datapoints[i].move(speed);
+    }
   }
+  else if (id < 119 && id > 110) {
+    generateAxisPositions();
+
   }
 }
 
@@ -223,16 +393,95 @@ void refresh(TuioTime bundleTime) {
   redraw();
 }
 
-void keyPressed(){
-  if (key == CODED){
-  if(keyCode == UP ){
-    speed += 0.1;
-  }
-  
-  if(keyCode == DOWN ){
-    speed -= 0.1;
-  }
+
+
+public class Axis {
+  TuioObject start, end;
+
+  int symbolID;
+  String attribute; 
+
+  public Axis (TuioObject tobj) {
+    symbolID = tobj.getSymbolID();
+    start=tobj; 
+    end = null;
+    attribute = idToAttr.get(symbolID);
   }
 
+  public Axis (TuioObject tobj0, TuioObject tobj1) {
+    symbolID = tobj0.getSymbolID();
+    start=tobj0; 
+    end = tobj1;
+    attribute = idToAttr.get(symbolID);
+  }
+
+  pt getDestinationAlongAxis(DataPoint point) {
+    pt xy0 = P(start.getX()*screenWidth, start.getY()* screenHeight);
+    pt xy1 = P(end.getX()*screenWidth, end.getY()* screenHeight);  
+    return L(xy0, xy1, point.getNormalizedValue(attribute));
+  }
+
+  String print() {
+    return attribute;
+  }
+
+  synchronized TuioObject addTuioObject(TuioObject tobj) {
+    TuioObject addedObject = null;
+    if (tobj.getSymbolID() == symbolID) {
+      if (start == null && tobj.getAngle() - end.getAngle() < PI / 10) {
+        start = tobj;
+        addedObject = tobj;
+      }
+      else if (end == null && tobj.getAngle() - start.getAngle() < PI / 10) {
+        end = tobj;
+        addedObject = tobj;
+      }
+    }
+    return addedObject;
+  }
+
+  synchronized void removeTuioObject(TuioObject tobj) {
+    if (tobj.getSymbolID() == symbolID) {
+      if (start == tobj) {
+        start = null;
+      }
+      else if (end == tobj) {
+        end = null;
+      }
+    }
+  }
+
+  void updateTuioObject(TuioObject tobj) {
+  }
+
+  boolean isEmpty() {
+    boolean isEmpty = false;
+    if (start == null && end == null)
+      isEmpty = true;
+    return isEmpty;
+  }
+
+  boolean isFull() {
+    boolean isFull = true;
+    if (start == null || end == null)
+      isFull = false;
+    return isFull;
+  }
+
+  synchronized void draw() {
+    if (isFull()) {
+      pt xy0 = P(start.getX()*screenWidth, start.getY()* screenHeight);
+      pt xy1 = P(end.getX()*screenWidth, end.getY()* screenHeight);  
+      //      println("Drawing axis" + xy0.x + " " + xy0.y + " " + xy1.x + " " + xy1.y);
+      pushStyle();
+      fill(100);
+      stroke(0);
+      line(xy0.x, xy0.y, xy1.x, xy1.y);
+      fill(255, 0, 0);
+      popStyle();
+    }
+  }
 }
+
+
 
