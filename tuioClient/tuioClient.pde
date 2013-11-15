@@ -51,6 +51,11 @@ float speed = 3;
 
 
 HashMap<Integer, String> idToAttr;
+Vector tuioObjectList;
+ArrayList<String> availableAttr = new ArrayList<String>() ;
+
+
+menu fieldsMenu;
 
 void setup()
 {
@@ -73,6 +78,17 @@ void setup()
   // an implementation of the TUIO callback methods (see below)
   tuioClient  = new TuioProcessing(this);
 
+  availableAttr = new ArrayList<String>();
+  availableAttr.add("calories");
+  availableAttr.add("proteins");
+  availableAttr.add("fats");
+  availableAttr.add("sodium");
+  availableAttr.add("fiber");
+  availableAttr.add("carbs");
+  availableAttr.add("sugars");
+  availableAttr.add("potassium");
+  availableAttr.add("vitamins");
+  
   idToAttr = new HashMap<Integer, String>();
 
   idToAttr.put(1, "calories"); 
@@ -98,7 +114,12 @@ void setup()
   for (int i = 0; i < datapoints.length; i++) {
     datapoints[i].setloc("fats", "fiber", screenWidth/2);
     datapoints[i].fillNorm(cereals.min, cereals.range);
+    
+    
   }
+  //pass the data-field names to the menu
+    fieldsMenu = new menu(this, idToAttr);
+    fieldsMenu.hide();
 }
 
 // within the draw method we retrieve a Vector (List) of TuioObject and TuioCursor (polling)
@@ -117,7 +138,8 @@ void draw()
 
 
   pushStyle();
-  Vector tuioObjectList = tuioClient.getTuioObjects();
+  tuioObjectList = tuioClient.getTuioObjects();
+  println(tuioObjectList.size());
   for (int i=0;i<tuioObjectList.size();i++) {
     TuioObject tobj = (TuioObject)tuioObjectList.elementAt(i);
     int id = tobj.getSymbolID();   
@@ -212,10 +234,11 @@ void addTuioObject(TuioObject tobj) {
     //Set a flag indicating that a fiducial is present
     fiducialIn = true;
     fiducialId = tobj.getSymbolID();
-  }
-  else if (id < 119 && id > 110) {
+  }else if (id < 119 && id > 110) {
     createAxisList();
     generateAxisPositions();
+  }else if (id == 12){
+    fieldsMenu.show();
   }
 }
 
@@ -343,6 +366,8 @@ void removeTuioObject(TuioObject tobj) {
   if (id < 119 && id > 110) {
     createAxisList();
     generateAxisPositions();
+  }else if (id == 12){
+    fieldsMenu.hide();
   }
 }
 
@@ -354,10 +379,11 @@ void updateTuioObject (TuioObject tobj) {
   int id = tobj.getSymbolID();
 
 
-  //  println("update object "+id+" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" "+tobj.getAngle()
-  //    +" "+tobj.getMotionSpeed()+" "+tobj.getRotationSpeed()+" "+tobj.getMotionAccel()+" "+tobj.getRotationAccel());
+//    println("update object "+id+" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" angle: "+tobj.getAngle()
+//      +" "+tobj.getMotionSpeed()+" "+tobj.getRotationSpeed()+" "+tobj.getMotionAccel()+" "+tobj.getRotationAccel());
+
   pt fidPt = P(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
-  //
+  
   if (id<9 && id>0) {
     //Calculate the vector from each datapoint to the fiducial and move it
     for (int i = 0; i < datapoints.length; i++) {
@@ -480,6 +506,42 @@ public class Axis {
       fill(255, 0, 0);
       popStyle();
     }
+  }
+}
+
+
+
+//Method to handle events from the menu and act on it
+ void controlEvent(ControlEvent theEvent) {
+  // ListBox is if type ControlGroup.
+  // 1 controlEvent will be executed, where the event
+  // originates from a ControlGroup. therefore
+  // you need to check the Event with
+  // if (theEvent.isGroup())
+  // to avoid an error message from controlP5.
+
+  if (theEvent.isGroup()) {
+    // an event from a group e.g. scrollList
+    println(theEvent.group().value()+" from "+theEvent.group());
+  }
+  
+  if(theEvent.isGroup() && theEvent.name().equals("myList")){
+    int test = (int)theEvent.group().value();
+    println("test "+test);
+    fieldsMenu.remove(test);
+    fieldsMenu.reDraw();
+    
+}
+}
+
+void keyPressed(){
+  if (key=='0') {
+    // will activate the listbox item with value 5
+    fieldsMenu.l.setValue(5);
+  }else if(key == 'h'){
+    fieldsMenu.hide();
+  }else if(key == 's'){
+    fieldsMenu.show();
   }
 }
 
