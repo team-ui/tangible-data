@@ -24,16 +24,12 @@ class ReadCSV {
 
   float[][] getTwoFields(int col1, int col2) {
 
-
-    float[][] columns = new float[length][2];
-
+    float[][] columns = new float[length][2];    
     for (int i = 0; i<length; i++) {
       String[] tokens = split(lines[i+1], ",");
-
       columns[i][0] = Float.parseFloat(tokens[col1-1]);
       columns[i][1] = Float.parseFloat(tokens[col2-1]);
     }
-
 
     return columns;
   }
@@ -41,7 +37,6 @@ class ReadCSV {
   DataPoint[] getPoints() {
 
     DataPoint[] points = new DataPoint[length];
-
 
     String[] tokens1 = split(lines[1], ",");
     for (int k = 0; k < 9; k++) {
@@ -74,8 +69,10 @@ class ReadCSV {
 
     for (int k = 0; k < 9; k++) {
       range[k] = max[k] - min[k];
-      print("max: "+ max[k]);
-      println("min: "+ min[k]);
+
+//      print("max: "+ max[k]);
+//      println("min: "+ min[k]);
+
     }
 
     println(length + " Points loaded");
