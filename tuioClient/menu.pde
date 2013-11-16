@@ -59,7 +59,7 @@ class menu {
         lbi.setColorBackground(0xffff0000);
       }
       else {
-        lbi.setColorBackground(0xffc1c1c1);
+        lbi.setColorBackground(color(0, 64));
       }
     }
   }
@@ -76,7 +76,7 @@ class menu {
         lbi.setColorBackground(0xffff0000);
       }
       else {
-        lbi.setColorBackground(0xffc1c1c1);
+        lbi.setColorBackground(color(0, 64));
       }
     }
   }

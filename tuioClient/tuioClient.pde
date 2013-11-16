@@ -65,13 +65,14 @@ void setup()
   size(screenWidth, screenHeight);
   noStroke();
   fill(0);
+  smooth();
+  
+  //font = loadFont("DroidSerif-Italic-48.vlw");
 
   loop();
   frameRate(30);
   //noLoop();
   axisList = new ArrayList<Axis>();
-
-  hint(ENABLE_NATIVE_FONTS);
   font = createFont("Arial", 18);
   scale_factor = height/table_size;
 
@@ -117,7 +118,7 @@ void setup()
 // from the TuioProcessing client and then loop over both lists to draw the graphical feedback.
 void draw()
 {
-  background(255);
+  background(220);
   textFont(font, 18*scale_factor);
   float obj_size = object_size*scale_factor; 
   float cur_size = cursor_size*scale_factor;
@@ -178,8 +179,8 @@ void draw()
   }  
 
   pushStyle();
-  fill(255, 0, 0);
-  stroke(255, 0, 0);
+  fill(0, 128, 255,80);                     //Blue, with a slight transparency
+  stroke(0,200);
   //Loop to display each datapoint on screen
   for (int i = 0; i < datapoints.length; i++) {
     //  strokeWeight (10 - (i*10)/cereals.length);
@@ -192,11 +193,11 @@ void draw()
   }
 
   //Show the scaled vector from each datapoint to the fiducial
-  if (fiducialIn) {
-    for (int i = 0; i < datapoints.length; i++) {
-      datapoints[i].showvec();
-    }
-  }
+//  if (fiducialIn) {
+//    for (int i = 0; i < datapoints.length; i++) {
+//      datapoints[i].showvec();
+//    }
+//  }
   popStyle();
 
   checkAssign();    //Check if it is possible to assign a value to the fiducial
@@ -359,7 +360,7 @@ void removeTuioObject(TuioObject tobj) {
   }
 }
 
-//void multMatrix(vec 
+
 
 
 // called when an object is moved
