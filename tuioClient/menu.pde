@@ -48,6 +48,11 @@ class menu {
     l.setSize(120, 150)
       .setPosition(20, 50);
   }
+  
+  void show(float X, float Y) {
+    l.setSize(120, 150)
+      .setPosition(X, Y);
+  }
 
   void reDraw() {
     l.clear();

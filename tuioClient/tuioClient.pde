@@ -131,8 +131,9 @@ void draw()
 
   for (int i=0;i<tuioObjectList.size();i++) {
     TuioObject tobj = (TuioObject)tuioObjectList.elementAt(i);
-    int id = tobj.getSymbolID();   
-
+    int id = tobj.getSymbolID();
+    
+  if(id != 12){
     stroke(0);
     fill(0);
     pushMatrix();
@@ -142,6 +143,7 @@ void draw()
     popMatrix();
     fill(255);
     text(""+idToAttr.get(tobj.getSymbolID()), tobj.getScreenX(width)-obj_size/2, tobj.getScreenY(height));
+  }
   }
 
   popStyle();
@@ -213,6 +215,8 @@ void addTuioObject(TuioObject tobj) {
 
 
   if (idToAttr.containsKey(id)) {
+    
+    if (id<9 && id>0){
     //Calculate the vector from each datapoint to the fiducial
     for (int i = 0; i < datapoints.length; i++) {
       datapoints[i].setvec(fidPt, idToAttr.get(id));
@@ -221,14 +225,11 @@ void addTuioObject(TuioObject tobj) {
     //Set a flag indicating that a fiducial is present
     fiducialIn = true;
     fiducialId = tobj.getSymbolID();
-  }
-  else if (id < 119 && id > 110) {
+    }else if (id < 119 && id > 110) {
     createAxisList();
     generateAxisPositions();
   }
-  else if (id == menuFiducial) {
-    fieldsMenu.show();
-  }
+  } 
 }
 
 //When an object is added or removed, we need to establish the current set of
@@ -374,15 +375,19 @@ void updateTuioObject (TuioObject tobj) {
   pt fidPt = P(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
 
   if (idToAttr.containsKey(id)) {
+    if (id<9 && id>0){
     //Calculate the vector from each datapoint to the fiducial and move it
     for (int i = 0; i < datapoints.length; i++) {
       datapoints[i].setvec(fidPt, idToAttr.get(id));
       datapoints[i].move(speed);
-    }
-  }
-  else if (id < 119 && id > 110) {
+    }}else if (id < 119 && id > 110) {
     generateAxisPositions();
   }
+  }else if (id == menuFiducial) {
+    fieldsMenu.show(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
+    
+  }
+  
 }
 
 // called when a cursor is added to the scene
