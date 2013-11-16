@@ -27,6 +27,7 @@
 
 // we need to import the TUIO library
 // and declare a TuioProcessing client variable
+
 import TUIO.*;
 import java.util.*;
 
@@ -50,12 +51,13 @@ int fiducialId = 0;
 float speed = 3;
 
 
-HashMap<Integer, String> idToAttr;
+HashMap<Integer, String> idToAttr;  //Maps from fiducial id to the attribute it represents
 Vector tuioObjectList;
-ArrayList<String> availableAttr = new ArrayList<String>() ;
+ArrayList<String> availableAttr; //Contains a list of attributes which can be assigned to new fiducials 
 
+menu fieldsMenu; //The object of the menu class, used to show the list of attributes
+int menuFiducial = 12; //The id of the fiducial which brings up the menu
 
-menu fieldsMenu;
 
 void setup()
 {
@@ -78,6 +80,7 @@ void setup()
   // an implementation of the TUIO callback methods (see below)
   tuioClient  = new TuioProcessing(this);
 
+
   availableAttr = new ArrayList<String>();
   availableAttr.add("calories");
   availableAttr.add("proteins");
@@ -88,38 +91,26 @@ void setup()
   availableAttr.add("sugars");
   availableAttr.add("potassium");
   availableAttr.add("vitamins");
-  
-  idToAttr = new HashMap<Integer, String>();
 
-  idToAttr.put(1, "calories"); 
-  idToAttr.put(2, "proteins"); 
-  idToAttr.put(3, "fats"); 
-  idToAttr.put(4, "sodium"); 
-  idToAttr.put(5, "fiber"); 
-  idToAttr.put(6, "carbs"); 
-  idToAttr.put(7, "sugars"); 
-  idToAttr.put(8, "potassium"); 
-  idToAttr.put(9, "vitamins");
+  idToAttr = new HashMap<Integer, String>();
 
   idToAttr.put(111, "calories"); 
   idToAttr.put(112, "proteins"); 
   idToAttr.put(113, "fats");
 
 
-  //Read the cereals dataset csv
-  cereals = new ReadCSV("data/cereals.csv");
-  columns = cereals.getTwoFields(4, 5);
-  //Create a point for each entry in the dataset
+
+  cereals = new ReadCSV("data/cereals.csv"); //Read the cereals dataset csv
+  columns = cereals.getTwoFields(4, 5); //Create a point for each entry in the dataset
+
   datapoints = cereals.getPoints();
   for (int i = 0; i < datapoints.length; i++) {
     datapoints[i].setloc("fats", "fiber", screenWidth/2);
     datapoints[i].fillNorm(cereals.min, cereals.range);
-    
-    
   }
-  //pass the data-field names to the menu
-    fieldsMenu = new menu(this, idToAttr);
-    fieldsMenu.hide();
+
+  fieldsMenu = new menu(this, availableAttr); //pass the data-field names to the menu
+  fieldsMenu.hide();                          //Keep the menu hidden initially
 }
 
 // within the draw method we retrieve a Vector (List) of TuioObject and TuioCursor (polling)
@@ -131,19 +122,15 @@ void draw()
   float obj_size = object_size*scale_factor; 
   float cur_size = cursor_size*scale_factor;
 
-
-
   text("No of points:"+datapoints.length, 10, 30);
-
-
 
   pushStyle();
   tuioObjectList = tuioClient.getTuioObjects();
-  println(tuioObjectList.size());
+  //println(tuioObjectList.size());
+
   for (int i=0;i<tuioObjectList.size();i++) {
     TuioObject tobj = (TuioObject)tuioObjectList.elementAt(i);
     int id = tobj.getSymbolID();   
-
 
     stroke(0);
     fill(0);
@@ -162,14 +149,13 @@ void draw()
   Vector tuioCursorList = tuioClient.getTuioCursors();
   for (int i=0;i<tuioCursorList.size();i++) {
 
-
     TuioCursor tcur = (TuioCursor)tuioCursorList.elementAt(i);
     Vector pointList = tcur.getPath();
 
     if (pointList.size()>0) {
       stroke(0, 0, 255);
       TuioPoint start_point = (TuioPoint)pointList.firstElement();
-      ;
+      
       for (int j=0;j<pointList.size();j++) {
         TuioPoint end_point = (TuioPoint)pointList.elementAt(j);
         line(start_point.getScreenX(width), start_point.getScreenY(height), end_point.getScreenX(width), end_point.getScreenY(height));
@@ -205,7 +191,6 @@ void draw()
     datapoints[i].showpt();
   }
 
-
   //Show the scaled vector from each datapoint to the fiducial
   if (fiducialIn) {
     for (int i = 0; i < datapoints.length; i++) {
@@ -214,6 +199,7 @@ void draw()
   }
   popStyle();
 
+  checkAssign();    //Check if it is possible to assign a value to the fiducial
 }
 
 // these callback methods are called whenever a TUIO event occurs
@@ -225,7 +211,7 @@ void addTuioObject(TuioObject tobj) {
   pt fidPt = P(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
 
 
-  if (id < 9 && id > 0) {
+  if (idToAttr.containsKey(id)) {
     //Calculate the vector from each datapoint to the fiducial
     for (int i = 0; i < datapoints.length; i++) {
       datapoints[i].setvec(fidPt, idToAttr.get(id));
@@ -234,10 +220,12 @@ void addTuioObject(TuioObject tobj) {
     //Set a flag indicating that a fiducial is present
     fiducialIn = true;
     fiducialId = tobj.getSymbolID();
-  }else if (id < 119 && id > 110) {
+  }
+  else if (id < 119 && id > 110) {
     createAxisList();
     generateAxisPositions();
-  }else if (id == 12){
+  }
+  else if (id == menuFiducial) {
     fieldsMenu.show();
   }
 }
@@ -313,19 +301,19 @@ void generateAxisPositions() {
                 dp = dot(U, V);
               }
               println("right angle " + dp);
-              
-//              pt v0 = P(a0.add(P(-1, a1)));
-//              pt v1 = P(b0.add(P(-1, b1)));
-//
-//              //Project the datapoint into the two dimensional space defined by the axes
-//              float[][] matrix = {
-//                {
-//                  v0.x, v1.x
-//                }
-//                , {
-//                  v0.y, v1.y
-//                }
-//              };
+
+              //              pt v0 = P(a0.add(P(-1, a1)));
+              //              pt v1 = P(b0.add(P(-1, b1)));
+              //
+              //              //Project the datapoint into the two dimensional space defined by the axes
+              //              float[][] matrix = {
+              //                {
+              //                  v0.x, v1.x
+              //                }
+              //                , {
+              //                  v0.y, v1.y
+              //                }
+              //              };
 
               for (int k = 0; k < datapoints.length; k++) {
                 pt A = a.getDestinationAlongAxis(datapoints[k]);
@@ -353,7 +341,6 @@ void generateAxisPositions() {
         }
       }
     }
-
 }
 
 // called when an object is removed from the scene
@@ -366,7 +353,8 @@ void removeTuioObject(TuioObject tobj) {
   if (id < 119 && id > 110) {
     createAxisList();
     generateAxisPositions();
-  }else if (id == 12){
+  }
+  else if (id == menuFiducial) {        //This is the id of the "Menu/Assignment fiducial" 
     fieldsMenu.hide();
   }
 }
@@ -379,12 +367,12 @@ void updateTuioObject (TuioObject tobj) {
   int id = tobj.getSymbolID();
 
 
-//    println("update object "+id+" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" angle: "+tobj.getAngle()
-//      +" "+tobj.getMotionSpeed()+" "+tobj.getRotationSpeed()+" "+tobj.getMotionAccel()+" "+tobj.getRotationAccel());
+  //    println("update object "+id+" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" angle: "+tobj.getAngle()
+  //      +" "+tobj.getMotionSpeed()+" "+tobj.getRotationSpeed()+" "+tobj.getMotionAccel()+" "+tobj.getRotationAccel());
 
   pt fidPt = P(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
-  
-  if (id<9 && id>0) {
+
+  if (idToAttr.containsKey(id)) {
     //Calculate the vector from each datapoint to the fiducial and move it
     for (int i = 0; i < datapoints.length; i++) {
       datapoints[i].setvec(fidPt, idToAttr.get(id));
@@ -393,7 +381,6 @@ void updateTuioObject (TuioObject tobj) {
   }
   else if (id < 119 && id > 110) {
     generateAxisPositions();
-
   }
 }
 
@@ -512,7 +499,7 @@ public class Axis {
 
 
 //Method to handle events from the menu and act on it
- void controlEvent(ControlEvent theEvent) {
+void controlEvent(ControlEvent theEvent) {
   // ListBox is if type ControlGroup.
   // 1 controlEvent will be executed, where the event
   // originates from a ControlGroup. therefore
@@ -524,26 +511,46 @@ public class Axis {
     // an event from a group e.g. scrollList
     println(theEvent.group().value()+" from "+theEvent.group());
   }
-  
-  if(theEvent.isGroup() && theEvent.name().equals("myList")){
+
+  if (theEvent.isGroup() && theEvent.name().equals("myList")) {
     int test = (int)theEvent.group().value();
     println("test "+test);
-    fieldsMenu.remove(test);
+
     fieldsMenu.reDraw();
-    
-}
+  }
 }
 
-void keyPressed(){
+void keyPressed() {
   if (key=='0') {
-    // will activate the listbox item with value 5
-    fieldsMenu.l.setValue(5);
-  }else if(key == 'h'){
+
+    fieldsMenu.l.setValue(5); // will activate the listbox item with value 5
+  }
+  else if (key == 'h') {
     fieldsMenu.hide();
-  }else if(key == 's'){
+  }
+  else if (key == 's') {
     fieldsMenu.show();
   }
 }
 
+//Checks if exactly two fiducials are present, if yes, checks whether one is the menu fiducial and the other is unassigned
+void checkAssign() {
+  if (tuioObjectList.size() == 2 && availableAttr.size() > 0) {
 
+    TuioObject tobj = (TuioObject)tuioObjectList.elementAt(0);
+    int id1 = tobj.getSymbolID();
+    tobj = (TuioObject)tuioObjectList.elementAt(1);
+    int id2 = tobj.getSymbolID();
+    if (id1 == menuFiducial && !idToAttr.containsKey(id2)) {
+      idToAttr.put(id2, availableAttr.get(0));
+      availableAttr.remove(0);
+      fieldsMenu.reDraw(availableAttr);
+    }
+    else if (id2 == menuFiducial && !idToAttr.containsKey(id1)) {
+      idToAttr.put(id1, availableAttr.get(0));
+      availableAttr.remove(0);
+      fieldsMenu.reDraw(availableAttr);
+    }
+  }
+}
 
