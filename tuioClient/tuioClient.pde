@@ -134,15 +134,17 @@ void draw()
     int id = tobj.getSymbolID();
     
   if(id != 12){
-    stroke(0);
-    fill(0);
+    stroke(0,255,0);
+    strokeWeight(3);
+    //fill(0,255,0,30);
+    noFill();
     pushMatrix();
     translate(tobj.getScreenX(width), tobj.getScreenY(height));
     rotate(tobj.getAngle());
     rect(-obj_size/2, -obj_size/2, obj_size, obj_size);
     popMatrix();
-    fill(255);
-    text(""+idToAttr.get(tobj.getSymbolID()), tobj.getScreenX(width)-obj_size/2, tobj.getScreenY(height));
+    fill(100);
+    text(""+idToAttr.get(tobj.getSymbolID()), tobj.getScreenX(width)-obj_size/2, tobj.getScreenY(height)-(obj_size/2 + 5));
   }
   }
 
@@ -384,7 +386,7 @@ void updateTuioObject (TuioObject tobj) {
     generateAxisPositions();
   }
   }else if (id == menuFiducial) {
-    fieldsMenu.show(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
+    fieldsMenu.show((tobj.getX()*screenWidth)+ object_size/2, tobj.getY()*screenHeight);                      //Align the menu to the right of the menu fiducial
     
   }
   
