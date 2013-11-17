@@ -403,7 +403,7 @@ void updateTuioObject (TuioObject tobj) {
   pt fidPt = P(tobj.getScreenX(width), tobj.getScreenY(height));
 
   if (idToAttr.containsKey(id)) {
-    if (id<9 && id>0){
+    if (id<9 && id>=0){
     //Calculate the vector from each datapoint to the fiducial and move it
     for (int i = 0; i < datapoints.length; i++) {
       datapoints[i].setvec(fidPt, idToAttr.get(id));
@@ -417,7 +417,8 @@ void updateTuioObject (TuioObject tobj) {
   }else if (id == pointyFiducial){
     
     pt closestPt = new pt();
-    pt fidLoc = P(tobj.getScreenX(width)+ object_size, tobj.getScreenY(height)+ object_size/2); // The mid-right edge of fiducial
+    pt fidLoc = P(tobj.getScreenX(width)+object_size, tobj.getScreenY(height)); // The mid-right edge of fiducial
+    
     for(int i = 0; i< datapoints.length; i++){
       if( (d(fidLoc, datapoints[i].loc)) < (d(fidLoc, closestPt)) ){
         closestPt = datapoints[i].loc;
