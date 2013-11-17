@@ -85,7 +85,7 @@ class DataPoint {
   //move the points by a certain value
   void showpt() {
     stroke(0);
-    strokeWeight(2);
+    strokeWeight(1);
     ellipse(loc.x, loc.y, 10, 10);
   }
 
