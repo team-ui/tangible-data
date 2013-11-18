@@ -44,6 +44,8 @@ ReadCSV cereals;
 int screenWidth = 1024, screenHeight = 768;
 float[][] columns;
 DataPoint[] datapoints;
+Boolean showPtInfo = false;
+int closestPoint;
 
 ArrayList<Axis> axisList;
 Boolean fiducialIn = false;
@@ -57,6 +59,7 @@ ArrayList<String> availableAttr; //Contains a list of attributes which can be as
 
 menu fieldsMenu; //The object of the menu class, used to show the list of attributes
 int menuFiducial = 12; //The id of the fiducial which brings up the menu
+int pointyFiducial = 31; // The name says it all
 
 
 void setup()
@@ -109,6 +112,8 @@ void setup()
     datapoints[i].setloc("fats", "fiber", screenWidth/2);
     datapoints[i].fillNorm(cereals.min, cereals.range);
   }
+  
+  closestPoint = 0;
 
   fieldsMenu = new menu(this, availableAttr); //pass the data-field names to the menu
   fieldsMenu.hide();                          //Keep the menu hidden initially
@@ -122,9 +127,7 @@ void draw()
   textFont(font, 18*scale_factor);
   float obj_size = object_size*scale_factor; 
   float cur_size = cursor_size*scale_factor;
-
-  text("No of points:"+datapoints.length, 10, 30);
-
+  
   pushStyle();
   tuioObjectList = tuioClient.getTuioObjects();
   //println(tuioObjectList.size());
@@ -133,7 +136,22 @@ void draw()
     TuioObject tobj = (TuioObject)tuioObjectList.elementAt(i);
     int id = tobj.getSymbolID();
     
-  if(id != 12){
+  if(id == pointyFiducial){
+
+    stroke(0,255,0);
+    strokeWeight(3);
+    //fill(0,255,0,30);
+    noFill();
+    pushMatrix();
+    translate(tobj.getScreenX(width), tobj.getScreenY(height));
+    rotate(tobj.getAngle());
+    rect(-obj_size/2, -obj_size/2, obj_size, obj_size);
+    triangle(obj_size, 0, obj_size/2, -obj_size/2, obj_size/2, obj_size/2 );
+    popMatrix();
+    fill(100);
+    
+    
+  }else if(id != menuFiducial){
     stroke(0,255,0);
     strokeWeight(3);
     //fill(0,255,0,30);
@@ -182,6 +200,7 @@ void draw()
     a.draw();
   }  
 
+  text("No of points:"+datapoints.length, 10, 30);
   pushStyle();
   fill(0, 128, 255,80);                     //Blue, with a slight transparency
   stroke(0,200);
@@ -194,6 +213,9 @@ void draw()
     //    datapoints[i].move(speed);
     datapoints[i].updateAndMove(10);      
     datapoints[i].showpt();
+    if(i == closestPoint && showPtInfo){
+      datapoints[i].showInfo();
+    }
   }
 
   //Show the scaled vector from each datapoint to the fiducial
@@ -231,7 +253,9 @@ void addTuioObject(TuioObject tobj) {
     createAxisList();
     generateAxisPositions();
   }
-  } 
+  } else if (id == pointyFiducial){
+    showPtInfo = true;
+  }
 }
 
 //When an object is added or removed, we need to establish the current set of
@@ -360,6 +384,8 @@ void removeTuioObject(TuioObject tobj) {
   }
   else if (id == menuFiducial) {        //This is the id of the "Menu/Assignment fiducial" 
     fieldsMenu.hide();
+  }else if (id == pointyFiducial){
+    showPtInfo = false;
   }
 }
 
@@ -374,10 +400,10 @@ void updateTuioObject (TuioObject tobj) {
   //    println("update object "+id+" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" angle: "+tobj.getAngle()
   //      +" "+tobj.getMotionSpeed()+" "+tobj.getRotationSpeed()+" "+tobj.getMotionAccel()+" "+tobj.getRotationAccel());
 
-  pt fidPt = P(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
+  pt fidPt = P(tobj.getScreenX(width), tobj.getScreenY(height));
 
   if (idToAttr.containsKey(id)) {
-    if (id<9 && id>0){
+    if (id<9 && id>=0){
     //Calculate the vector from each datapoint to the fiducial and move it
     for (int i = 0; i < datapoints.length; i++) {
       datapoints[i].setvec(fidPt, idToAttr.get(id));
@@ -386,8 +412,19 @@ void updateTuioObject (TuioObject tobj) {
     generateAxisPositions();
   }
   }else if (id == menuFiducial) {
-    fieldsMenu.show((tobj.getX()*screenWidth)+ object_size/2, tobj.getY()*screenHeight);                      //Align the menu to the right of the menu fiducial
+    fieldsMenu.show(tobj.getScreenX(width)+ object_size/2, tobj.getScreenY(height));                      //Align the menu to the right of the menu fiducial
     
+  }else if (id == pointyFiducial){
+    
+    pt closestPt = new pt();
+    pt fidLoc = P(tobj.getScreenX(width)+object_size, tobj.getScreenY(height)); // The mid-right edge of fiducial
+    
+    for(int i = 0; i< datapoints.length; i++){
+      if( (d(fidLoc, datapoints[i].loc)) < (d(fidLoc, closestPt)) ){
+        closestPt = datapoints[i].loc;
+        closestPoint = i;
+      }
+    }
   }
   
 }

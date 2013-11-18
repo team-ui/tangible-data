@@ -50,7 +50,7 @@ class ReadCSV {
 
       String[] tokens = split(lines[i+1], ",");
       float[] values = new float[9];
-
+      String name = tokens[0];
       for (int k = 0, j = 3; k < 9; k++, j++) { 
         values[k] = Float.parseFloat(tokens[j]);
 
@@ -64,7 +64,7 @@ class ReadCSV {
 
 
 
-      points[i] = new DataPoint(values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8]);
+      points[i] = new DataPoint(name, values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7], values[8]);
     }
 
     for (int k = 0; k < 9; k++) {

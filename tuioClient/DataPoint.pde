@@ -3,7 +3,8 @@ class DataPoint {
 
   pt dest; 
 
-  vec v;  
+  vec v;
+  String name;  
   HashMap<String, Float> dataval;
   HashMap<String, Float> normdata;
 
@@ -17,7 +18,8 @@ class DataPoint {
   }
 
 
-  DataPoint(float cal, float pro, float fat, float sod, float fib, float car, float sug, float pot, float vit) {
+  DataPoint(String title,float cal, float pro, float fat, float sod, float fib, float car, float sug, float pot, float vit) {
+    name = title;
     //normalizing values
     loc = new pt();     //initialize the location as the point
 
@@ -87,6 +89,11 @@ class DataPoint {
     stroke(0);
     strokeWeight(1);
     ellipse(loc.x, loc.y, 10, 10);
+  }
+  
+  void showInfo() {
+    text(name, loc.x + 5, loc.y);
+    
   }
 
   //accepts the center of the fiducial, and sets a vector from  the current point to the fiducial
