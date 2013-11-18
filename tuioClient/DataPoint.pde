@@ -29,8 +29,7 @@ class DataPoint {
     dataval.put("sugars", sug); 
     dataval.put("potassium", pot); 
     dataval.put("vitamins", vit);
-  }
-
+  }   
 
   //Normalize each data in a range from 0-1
   void fillNorm(float[] min, float[] range) {
