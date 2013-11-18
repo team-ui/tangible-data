@@ -1,7 +1,9 @@
 class DataPoint {
   pt loc;
   pt dest; 
-  vec v;  
+  vec v;
+  
+  String name;  
   HashMap<String, Float> dataval;
   HashMap<String, Float> normdata;
   boolean line = false;
@@ -10,13 +12,15 @@ class DataPoint {
   DataPoint() {
     loc = new pt();    
     dest = null;
-    v = V(0, 0);
+    v = V(0,0);
   }
 
 
-  DataPoint(float cal, float pro, float fat, float sod, float fib, float car, float sug, float pot, float vit) {
+  DataPoint(String title,float cal, float pro, float fat, float sod, float fib, float car, float sug, float pot, float vit) {
+    name = title;
     //normalizing values
     loc = new pt();     //initialize the location as the point
+
     dest = null;
     v = V(0, 0);
     dataval = new HashMap<String, Float>();
@@ -30,6 +34,7 @@ class DataPoint {
     dataval.put("potassium", pot); 
     dataval.put("vitamins", vit);
   }   
+
 
   //Normalize each data in a range from 0-1
   void fillNorm(float[] min, float[] range) {
@@ -56,6 +61,7 @@ class DataPoint {
   //Get normalized value for a DataPoint
   float getNormalizedValue(String attr) {
     return normdata.get(attr);
+
   }
 
   //Specify which data valued to use as a co-ordinate
@@ -67,15 +73,25 @@ class DataPoint {
 
   //Explicitly set the location
   void setloc(float X, float Y) {
-    //    println("Explicitly setting the location");
-    loc = P(X, Y);
-  }
+//    println("Explicitly setting the location");
 
+    loc = P(X, Y);
+  } 
+
+  //move the points by a certain value
   void showpt() {
-    if (!line)
+    if (!line){    
+      stroke(0);
+      strokeWeight(1);
       ellipse(loc.x, loc.y, 6, 6);
+    }
     else
       line(loc.x, loc.y, dest.x, dest.y);
+  }
+  
+  void showInfo() {
+    text(name, loc.x + 5, loc.y);
+    
   }
 
   //move the points by a certain value
@@ -88,6 +104,7 @@ class DataPoint {
 
   //accepts the center of the fiducial, and sets a vector from  the current point to the fiducial
   void setvec(pt fidPt, String attr) {
+
     //    println("calculating vector");
     v = U(V(loc, fidPt));
     v.scaleBy(normdata.get(attr));
@@ -99,6 +116,7 @@ class DataPoint {
     dest = P(end);
     v = U(loc, dest);
   }
+
 
   void setDest(pt destination) {
     dest = destination;

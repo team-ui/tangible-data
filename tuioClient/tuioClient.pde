@@ -1,5 +1,3 @@
-
-
 /*
 
  A client to recieve data from tangibles using the TUIO protocol,
@@ -29,6 +27,7 @@
 
 // we need to import the TUIO library
 // and declare a TuioProcessing client variable
+
 import TUIO.*;
 import java.util.*;
 
@@ -45,6 +44,9 @@ ReadCSV cereals;
 int screenWidth = 1024, screenHeight = 768;
 float[][] columns;
 DataPoint[] datapoints;
+Boolean showPtInfo = false;
+int closestPoint;
+
 ArrayList<Axis> axisList;
 ArrayList<DataPoint[]> pointSets;
 Boolean fiducialIn = false;
@@ -53,7 +55,15 @@ float speed = 3;
 pt origin; //Don't forget to get rid of this before turning in.
 boolean drawing = false;
 
-HashMap<Integer, String> idToAttr;
+
+HashMap<Integer, String> idToAttr;  //Maps from fiducial id to the attribute it represents
+Vector tuioObjectList;
+ArrayList<String> availableAttr; //Contains a list of attributes which can be assigned to new fiducials 
+
+menu fieldsMenu; //The object of the menu class, used to show the list of attributes
+int menuFiducial = 12; //The id of the fiducial which brings up the menu
+int pointyFiducial = 31; // The name says it all
+
 
 void setup()
 {
@@ -61,13 +71,14 @@ void setup()
   size(screenWidth, screenHeight);
   noStroke();
   fill(0);
+  smooth();
+  
+  //font = loadFont("DroidSerif-Italic-48.vlw");
 
   loop();
   frameRate(30);
   //noLoop();
   axisList = new ArrayList<Axis>();
-
-  hint(ENABLE_NATIVE_FONTS);
   font = createFont("Arial", 18);
   scale_factor = height/table_size;
 
@@ -76,68 +87,98 @@ void setup()
   // an implementation of the TUIO callback methods (see below)
   tuioClient  = new TuioProcessing(this);
 
+
+  availableAttr = new ArrayList<String>();
+  availableAttr.add("calories");
+  availableAttr.add("proteins");
+  availableAttr.add("fats");
+  availableAttr.add("sodium");
+  availableAttr.add("fiber");
+  availableAttr.add("carbs");
+  availableAttr.add("sugars");
+  availableAttr.add("potassium");
+  availableAttr.add("vitamins");
+
   idToAttr = new HashMap<Integer, String>();
 
-  idToAttr.put(1, "calories"); 
-  idToAttr.put(2, "proteins"); 
-  idToAttr.put(3, "fats"); 
-  idToAttr.put(4, "sodium"); 
-  idToAttr.put(5, "fiber"); 
-  idToAttr.put(6, "carbs"); 
-  idToAttr.put(7, "sugars"); 
-  idToAttr.put(8, "potassium"); 
-  idToAttr.put(9, "vitamins");
   idToAttr.put(111, "calories"); 
   idToAttr.put(112, "proteins"); 
   idToAttr.put(113, "fats");
 
-  //Read the cereals dataset csv
-  cereals = new ReadCSV("data/cereals.csv");
-  columns = cereals.getTwoFields(4, 5);
-  //Create a point for each entry in the dataset
+
+
+  cereals = new ReadCSV("data/cereals.csv"); //Read the cereals dataset csv
+  columns = cereals.getTwoFields(4, 5); //Create a point for each entry in the dataset
+
   datapoints = cereals.getPoints();
   for (int i = 0; i < datapoints.length; i++) {
     datapoints[i].setloc("fats", "fiber", screenWidth/2);
     datapoints[i].fillNorm(cereals.min, cereals.range);
   }
-  origin = P(100, 100);
+  
+  closestPoint = 0;
+
+  fieldsMenu = new menu(this, availableAttr); //pass the data-field names to the menu
+  fieldsMenu.hide();                          //Keep the menu hidden initially
   pointSets = new ArrayList<DataPoint[]>();
-  //  pointSets.add(datapoints);
+  pointSets.add(datapoints);
 }
 
 // within the draw method we retrieve a Vector (List) of TuioObject and TuioCursor (polling)
 // from the TuioProcessing client and then loop over both lists to draw the graphical feedback.
 void draw()
 {
-  background(255);
-  drawing = true;
+
+  background(220);
   textFont(font, 18*scale_factor);
   float obj_size = object_size*scale_factor; 
-  float cur_size = cursor_size*scale_factor;
+  float cur_size = cursor_size*scale_factor; 
 
   text("No of points:"+datapoints.length, 10, 30);
 
-  pushStyle();
-  fill(0, 150, 0);
-  ellipse(origin.x, origin.y, 10, 10);  
-  popStyle();
+//  pushStyle();
+//  fill(0, 150, 0);
+//  ellipse(origin.x, origin.y, 10, 10);  
+//  popStyle();
 
   pushStyle();
-  Vector tuioObjectList = tuioClient.getTuioObjects();
+  tuioObjectList = tuioClient.getTuioObjects();
+  //println(tuioObjectList.size());
+
   for (int i=0;i<tuioObjectList.size();i++) {
     TuioObject tobj = (TuioObject)tuioObjectList.elementAt(i);
-    int id = tobj.getSymbolID();   
+    int id = tobj.getSymbolID();
+    
+  if(id == pointyFiducial){
 
-    stroke(0);
-    fill(0);
+    stroke(0,255,0);
+    strokeWeight(3);
+    //fill(0,255,0,30);
+    noFill();
+    pushMatrix();
+    translate(tobj.getScreenX(width), tobj.getScreenY(height));
+    rotate(tobj.getAngle());
+    rect(-obj_size/2, -obj_size/2, obj_size, obj_size);
+    triangle(obj_size, 0, obj_size/2, -obj_size/2, obj_size/2, obj_size/2 );
+    popMatrix();
+    fill(100);
+    
+    
+  }else if(id != menuFiducial){
+    stroke(0,255,0);
+    strokeWeight(3);
+    //fill(0,255,0,30);
+    noFill();
     pushMatrix();
     translate(tobj.getScreenX(width), tobj.getScreenY(height));
     rotate(tobj.getAngle());
     rect(-obj_size/2, -obj_size/2, obj_size, obj_size);
     popMatrix();
-    fill(255);
-    text(""+idToAttr.get(tobj.getSymbolID()), tobj.getScreenX(width)-obj_size/2, tobj.getScreenY(height));
+    fill(100);
+    text(""+idToAttr.get(tobj.getSymbolID()), tobj.getScreenX(width)-obj_size/2, tobj.getScreenY(height)-(obj_size/2 + 5));
   }
+  }
+
   popStyle();
 
   pushStyle();
@@ -150,7 +191,7 @@ void draw()
     if (pointList.size()>0) {
       stroke(0, 0, 255);
       TuioPoint start_point = (TuioPoint)pointList.firstElement();
-      ;
+      
       for (int j=0;j<pointList.size();j++) {
         TuioPoint end_point = (TuioPoint)pointList.elementAt(j);
         line(start_point.getScreenX(width), start_point.getScreenY(height), end_point.getScreenX(width), end_point.getScreenY(height));
@@ -164,6 +205,7 @@ void draw()
       text(""+ tcur.getCursorID(), tcur.getScreenX(width)-5, tcur.getScreenY(height)+5);
     }
   }
+
   popStyle();
 
   //Loop to display each axis on screen
@@ -177,9 +219,11 @@ void draw()
     popStyle();
   }
 
+  text("No of points:"+datapoints.length, 10, 30);
   pushStyle();
-  fill(255, 0, 0);
-  stroke(255, 0, 0);
+  checkAssign();    //Check if it is possible to assign a value to the fiducial
+  fill(0, 128, 255,80);                     //Blue, with a slight transparency
+  stroke(0,200);
 
   for (DataPoint[] set : pointSets) {
 
@@ -191,7 +235,12 @@ void draw()
       //  float y = (columns[i][1]*screenHeight)/8;
       //    datapoints[i].move(speed);
       set[i].updateAndMove(10);      
-      set[i].showpt(screenWidth/2);
+      set[i].showpt();
+
+      //
+      if(i == closestPoint && showPtInfo){
+        datapoints[i].showInfo();
+      }
 
       //Show the scaled vector from each datapoint to the fiducial
       if (fiducialIn) {
@@ -200,7 +249,6 @@ void draw()
     }
   }
   popStyle();
-  drawing = false;
 }
 
 // these callback methods are called whenever a TUIO event occurs
@@ -211,7 +259,10 @@ void addTuioObject(TuioObject tobj) {
   println("add object "+ id +" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" "+tobj.getAngle());
   pt fidPt = P(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
 
-  if (id < 9 && id > 0) {
+
+  if (idToAttr.containsKey(id)) {
+    
+    if (id<9 && id>0){
     //Calculate the vector from each datapoint to the fiducial
     if (pointSets.isEmpty())
       pointSets.add(datapoints);
@@ -224,43 +275,92 @@ void addTuioObject(TuioObject tobj) {
     //Set a flag indicating that a fiducial is present
     fiducialIn = true;
     fiducialId = tobj.getSymbolID();
-  }
-  else if (id < 119 && id > 110) {
+    }else if (id < 119 && id > 110) {
     createAxisList();
     generateAxisPositions();
+  }
+  } else if (id == pointyFiducial){
+    showPtInfo = true;
   }
 }
 
 // called when an object is removed from the scene
+// void removeTuioObject(TuioObject tobj) {
+//   println("remove object "+tobj.getSymbolID()+" ("+tobj.getSessionID()+")");
+//   fiducialIn = false;
+//   fiducialId = 0;
+//   int id = tobj.getSymbolID();
+//   if (id < 119 && id > 110) {
+//     createAxisList();
+//     generateAxisPositions();
+//   }
+// }
+
 void removeTuioObject(TuioObject tobj) {
   println("remove object "+tobj.getSymbolID()+" ("+tobj.getSessionID()+")");
   fiducialIn = false;
   fiducialId = 0;
+
   int id = tobj.getSymbolID();
   if (id < 119 && id > 110) {
     createAxisList();
     generateAxisPositions();
   }
+  else if (id == menuFiducial) {        //This is the id of the "Menu/Assignment fiducial" 
+    fieldsMenu.hide();
+  }else if (id == pointyFiducial){
+    showPtInfo = false;
+  }
 }
 
 // called when an object is moved
-void updateTuioObject (TuioObject tobj) {
-  int id = tobj.getSymbolID();
+// void updateTuioObject (TuioObject tobj) {
+//   int id = tobj.getSymbolID();
 
-  //  println("update object "+id+" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" "+tobj.getAngle()
-  //    +" "+tobj.getMotionSpeed()+" "+tobj.getRotationSpeed()+" "+tobj.getMotionAccel()+" "+tobj.getRotationAccel());
-  pt fidPt = P(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
-  //
-  if (id<9 && id>0) {
+//   //  println("update object "+id+" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" "+tobj.getAngle()
+//   //    +" "+tobj.getMotionSpeed()+" "+tobj.getRotationSpeed()+" "+tobj.getMotionAccel()+" "+tobj.getRotationAccel());
+//   pt fidPt = P(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
+//   //
+//   if (id<9 && id>0) {
+//     //Calculate the vector from each datapoint to the fiducial and move it
+//     //Will need to be updated to update all datapoints in all sets (even lines)
+//     for (int i = 0; i < datapoints.length; i++) {
+//       datapoints[i].setvec(fidPt, idToAttr.get(id));
+//       datapoints[i].move(speed);
+//     }
+//   }
+//   else if (id < 119 && id > 110) {
+//     generateAxisPositions();
+//   }
+// }
+
+void updateTuioObject (TuioObject tobj){
+  int id  = tobj.getSymbolID();
+  pt fidPt = P(tobj.getScreenX(width), tobj.getScreenY(height));
+
+  if (idToAttr.containsKey(id)) {
+    if (id<9 && id>=0){
     //Calculate the vector from each datapoint to the fiducial and move it
-    //Will need to be updated to update all datapoints in all sets (even lines)
     for (int i = 0; i < datapoints.length; i++) {
       datapoints[i].setvec(fidPt, idToAttr.get(id));
       datapoints[i].move(speed);
-    }
-  }
-  else if (id < 119 && id > 110) {
+    }}else if (id < 119 && id > 110) {
     generateAxisPositions();
+  }
+  }else if (id == menuFiducial) {
+    fieldsMenu.show(tobj.getScreenX(width)+ object_size/2, tobj.getScreenY(height));                      //Align the menu to the right of the menu fiducial
+    
+  }else if (id == pointyFiducial){
+    
+    pt closestPt = new pt();
+    pt fidLoc = P(tobj.getScreenX(width)+object_size, tobj.getScreenY(height)); // The mid-right edge of fiducial
+    
+    for(int i = 0; i< datapoints.length; i++){
+      if( (d(fidLoc, datapoints[i].loc)) < (d(fidLoc, closestPt)) ){
+        closestPt = datapoints[i].loc;
+        closestPoint = i;
+      }
+    }
   }
 }
 
@@ -379,7 +479,7 @@ void generateAxisPositions() {
               pt plot;
               if (angle > 0) {
                 plot = P(datapoints[k].getNormalizedValue(a.attribute), datapoints[k].getNormalizedValue(b.attribute));
-                plot.scale(aScale, bScale);
+                plot.scale(aScale, bScale);            
               }
               else {
                 plot = P(datapoints[k].getNormalizedValue(b.attribute), datapoints[k].getNormalizedValue(a.attribute));
@@ -416,6 +516,7 @@ void generateAxisPositions() {
   }
 }
 
+
 //Returns the point of intersection between two lines. 
 //Returns null if the lines are parallel.
 pt linelineintersection(pt a0, pt a1, pt b0, pt b1) {
@@ -442,6 +543,7 @@ pt multMatrix(float[][] matrix, pt p) {
   return result;
 }
 
+
 //determine if a point exists on a line. the line is defined by two points.
 boolean pointOnLine(pt l1, pt l2, pt a) {
   float m = (l2.y - l1.y) / (l2.x - l1.x);
@@ -450,6 +552,7 @@ boolean pointOnLine(pt l1, pt l2, pt a) {
     pointOnLine = true;
   return pointOnLine;
 }
+
 
 //determinant of two points
 double det(pt a, pt b) {
@@ -479,6 +582,7 @@ boolean isBetween(pt A, pt B, pt C) {
   if (dotProduct > squaredLengthBA)
     return false;
   return isBetween;
+
 }
 
 // called when a cursor is added to the scene
@@ -503,6 +607,7 @@ void refresh(TuioTime bundleTime) {
   //  redraw();
 }
 
+
 //public class Plot {
 //  Axis a, b;
 //  DataPoint[] set;
@@ -513,6 +618,7 @@ void refresh(TuioTime bundleTime) {
 //   set = new DataPoint[data.length];
 //  }
 //}
+
 
 
 public class Axis {
@@ -628,6 +734,64 @@ public class Axis {
 
       fill(255, 0, 0);
       popStyle();
+    }
+  }
+}
+
+
+
+//Method to handle events from the menu and act on it
+void controlEvent(ControlEvent theEvent) {
+  // ListBox is if type ControlGroup.
+  // 1 controlEvent will be executed, where the event
+  // originates from a ControlGroup. therefore
+  // you need to check the Event with
+  // if (theEvent.isGroup())
+  // to avoid an error message from controlP5.
+
+  if (theEvent.isGroup()) {
+    // an event from a group e.g. scrollList
+    println(theEvent.group().value()+" from "+theEvent.group());
+  }
+
+  if (theEvent.isGroup() && theEvent.name().equals("myList")) {
+    int test = (int)theEvent.group().value();
+    println("test "+test);
+
+    fieldsMenu.reDraw();
+  }
+}
+
+void keyPressed() {
+  if (key=='0') {
+
+    fieldsMenu.l.setValue(5); // will activate the listbox item with value 5
+  }
+  else if (key == 'h') {
+    fieldsMenu.hide();
+  }
+  else if (key == 's') {
+    fieldsMenu.show();
+  }
+}
+
+//Checks if exactly two fiducials are present, if yes, checks whether one is the menu fiducial and the other is unassigned
+void checkAssign() {
+  if (tuioObjectList.size() == 2 && availableAttr.size() > 0) {
+
+    TuioObject tobj = (TuioObject)tuioObjectList.elementAt(0);
+    int id1 = tobj.getSymbolID();
+    tobj = (TuioObject)tuioObjectList.elementAt(1);
+    int id2 = tobj.getSymbolID();
+    if (id1 == menuFiducial && !idToAttr.containsKey(id2)) {
+      idToAttr.put(id2, availableAttr.get(0));
+      availableAttr.remove(0);
+      fieldsMenu.reDraw(availableAttr);
+    }
+    else if (id2 == menuFiducial && !idToAttr.containsKey(id1)) {
+      idToAttr.put(id1, availableAttr.get(0));
+      availableAttr.remove(0);
+      fieldsMenu.reDraw(availableAttr);
     }
   }
 }
