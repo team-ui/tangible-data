@@ -1,20 +1,18 @@
 class DataPoint {
   pt loc;
-
   pt dest; 
-
   vec v;
+  
   String name;  
   HashMap<String, Float> dataval;
   HashMap<String, Float> normdata;
+  boolean line = false;
 
   // CREATE
   DataPoint() {
-
     loc = new pt();    
     dest = null;
     v = V(0,0);
-
   }
 
 
@@ -24,7 +22,7 @@ class DataPoint {
     loc = new pt();     //initialize the location as the point
 
     dest = null;
-    v = V(0,0);
+    v = V(0, 0);
     dataval = new HashMap<String, Float>();
     dataval.put("calories", cal);
     dataval.put("proteins", pro);
@@ -35,13 +33,12 @@ class DataPoint {
     dataval.put("sugars", sug); 
     dataval.put("potassium", pot); 
     dataval.put("vitamins", vit);
-  }
-
+  }   
 
 
   //Normalize each data in a range from 0-1
   void fillNorm(float[] min, float[] range) {
-//    println("Filling normalized values");
+    //    println("Filling normalized values");
 
     //Switched these over to normalized in the range of 0-1, making vector manipulation much easier
     normdata = new HashMap<String, Float>();
@@ -56,9 +53,9 @@ class DataPoint {
     normdata.put("potassium", ((dataval.get("potassium")-min[7])*normalizedMax)/range[7]);
     normdata.put("vitamins", ((dataval.get("vitamins")-min[8])*normalizedMax)/range[8]);
 
-//    for (String key : normdata.keySet()) {
-//      println(normdata.get(key));
-//    }
+    //    for (String key : normdata.keySet()) {
+    //      println(normdata.get(key));
+    //    }
   }
 
   //Get normalized value for a DataPoint
@@ -76,24 +73,33 @@ class DataPoint {
 
   //Explicitly set the location
   void setloc(float X, float Y) {
-
 //    println("Explicitly setting the location");
 
     loc = P(X, Y);
-  }
-
-  
+  } 
 
   //move the points by a certain value
   void showpt() {
-    stroke(0);
-    strokeWeight(1);
-    ellipse(loc.x, loc.y, 10, 10);
+    if (!line){    
+      stroke(0);
+      strokeWeight(1);
+      ellipse(loc.x, loc.y, 6, 6);
+    }
+    else
+      line(loc.x, loc.y, dest.x, dest.y);
   }
   
   void showInfo() {
     text(name, loc.x + 5, loc.y);
     
+  }
+
+  //move the points by a certain value
+  void showpt(float bias) {
+    if (!line)
+      ellipse(loc.x, loc.y, 6, 6);
+    else
+      line(loc.x, loc.y, dest.x, dest.y);
   }
 
   //accepts the center of the fiducial, and sets a vector from  the current point to the fiducial
@@ -104,17 +110,23 @@ class DataPoint {
     v.scaleBy(normdata.get(attr));
   }
 
+  void setLine(pt start, pt end) {
+    line = true;
+    loc = P(start);
+    dest = P(end);
+    v = U(loc, dest);
+  }
 
 
   void setDest(pt destination) {
-    dest = destination;    
+    dest = destination;
   }
-  
+
   void updateDest(pt destination, String attr) {
     if (dest == null)    
       dest = L(loc, destination, getNormalizedValue(attr));
     else
-      dest = L(dest, destination, getNormalizedValue(attr));    
+      dest = L(dest, destination, getNormalizedValue(attr));
   }
 
   void showvec() {
@@ -124,24 +136,27 @@ class DataPoint {
 
   //Update the vector based on the newest destination and move towards it
   void updateAndMove(float speed) {
-    if (dest != null) {
-      if (d(loc, dest) > 5)
-        v = U(loc, dest);
-      else 
-        v.zero();    
-      loc = P(loc, mul(v, speed));
-    }
-    else{
-     dest = loc;
-     v = V(0,0); 
+    if (!line) {
+      if (dest != null) {
+        if (d(loc, dest) > 5)
+          v = U(loc, dest);
+        else 
+          v.zero();    
+        loc = P(loc, mul(v, speed));
+      }
+      else {
+        dest = loc;
+        v = V(0, 0);
+      }
     }
   }
 
   //Move the datapoint in the direction of the fiducial
   void move(float speed) {
-    loc = P(loc, mul(v, speed));
-    dest = loc;
-
+    if (!line) {
+      loc = P(loc, mul(v, speed));
+      dest = loc;
+    }
   }
 }
 
