@@ -48,9 +48,12 @@ Boolean showPtInfo = false;
 int closestPoint;
 
 ArrayList<Axis> axisList;
+ArrayList<DataPoint[]> pointSets;
 Boolean fiducialIn = false;
 int fiducialId = 0;
 float speed = 3;
+pt origin; //Don't forget to get rid of this before turning in.
+boolean drawing = false;
 
 
 HashMap<Integer, String> idToAttr;  //Maps from fiducial id to the attribute it represents
@@ -117,17 +120,27 @@ void setup()
 
   fieldsMenu = new menu(this, availableAttr); //pass the data-field names to the menu
   fieldsMenu.hide();                          //Keep the menu hidden initially
+  pointSets = new ArrayList<DataPoint[]>();
+  pointSets.add(datapoints);
 }
 
 // within the draw method we retrieve a Vector (List) of TuioObject and TuioCursor (polling)
 // from the TuioProcessing client and then loop over both lists to draw the graphical feedback.
 void draw()
 {
+
   background(220);
   textFont(font, 18*scale_factor);
   float obj_size = object_size*scale_factor; 
-  float cur_size = cursor_size*scale_factor;
-  
+  float cur_size = cursor_size*scale_factor; 
+
+  text("No of points:"+datapoints.length, 10, 30);
+
+//  pushStyle();
+//  fill(0, 150, 0);
+//  ellipse(origin.x, origin.y, 10, 10);  
+//  popStyle();
+
   pushStyle();
   tuioObjectList = tuioClient.getTuioObjects();
   //println(tuioObjectList.size());
@@ -196,37 +209,46 @@ void draw()
   popStyle();
 
   //Loop to display each axis on screen
-  for (Axis a: axisList) {
-    a.draw();
-  }  
+  //Because of the way the axis list is constructed, there
+  //is a risk of a concurrent modification exception here.
+  synchronized(this) {
+    pushStyle();
+    for (Axis a: axisList) {
+      a.draw();
+    }  
+    popStyle();
+  }
 
   text("No of points:"+datapoints.length, 10, 30);
   pushStyle();
+  checkAssign();    //Check if it is possible to assign a value to the fiducial
   fill(0, 128, 255,80);                     //Blue, with a slight transparency
   stroke(0,200);
-  //Loop to display each datapoint on screen
-  for (int i = 0; i < datapoints.length; i++) {
-    //  strokeWeight (10 - (i*10)/cereals.length);
-    //  stroke(i*3,i*2,i);
-    //  float x = (columns[i][0]*screenWidth)/200;
-    //  float y = (columns[i][1]*screenHeight)/8;
-    //    datapoints[i].move(speed);
-    datapoints[i].updateAndMove(10);      
-    datapoints[i].showpt();
-    if(i == closestPoint && showPtInfo){
-      datapoints[i].showInfo();
+
+  for (DataPoint[] set : pointSets) {
+
+    //Loop to display each datapoint on screen
+    for (int i = 0; i < set.length; i++) {
+      //  strokeWeight (10 - (i*10)/cereals.length);
+      //  stroke(i*3,i*2,i);
+      //  float x = (columns[i][0]*screenWidth)/200;
+      //  float y = (columns[i][1]*screenHeight)/8;
+      //    datapoints[i].move(speed);
+      set[i].updateAndMove(10);      
+      set[i].showpt();
+
+      //
+      if(i == closestPoint && showPtInfo){
+        datapoints[i].showInfo();
+      }
+
+      //Show the scaled vector from each datapoint to the fiducial
+      if (fiducialIn) {
+        datapoints[i].showvec();
+      }
     }
   }
-
-  //Show the scaled vector from each datapoint to the fiducial
-//  if (fiducialIn) {
-//    for (int i = 0; i < datapoints.length; i++) {
-//      datapoints[i].showvec();
-//    }
-//  }
   popStyle();
-
-  checkAssign();    //Check if it is possible to assign a value to the fiducial
 }
 
 // these callback methods are called whenever a TUIO event occurs
@@ -242,8 +264,12 @@ void addTuioObject(TuioObject tobj) {
     
     if (id<9 && id>0){
     //Calculate the vector from each datapoint to the fiducial
-    for (int i = 0; i < datapoints.length; i++) {
-      datapoints[i].setvec(fidPt, idToAttr.get(id));
+    if (pointSets.isEmpty())
+      pointSets.add(datapoints);
+    for (DataPoint[] set : pointSets) {
+      for (int i = 0; i < set.length; i++) {
+        set[i].setvec(fidPt, idToAttr.get(id));
+      }
     }
 
     //Set a flag indicating that a fiducial is present
@@ -258,120 +284,18 @@ void addTuioObject(TuioObject tobj) {
   }
 }
 
-//When an object is added or removed, we need to establish the current set of
-//axes on the display.
-void createAxisList() {
-  axisList.clear();
-  Vector tuioObjectList = tuioClient.getTuioObjects();
-  for (int i=0;i<tuioObjectList.size();i++) {
-    TuioObject tobj = (TuioObject)tuioObjectList.elementAt(i);
-    int id = tobj.getSymbolID();
-    if (id > 110 && id < 119) {
-      TuioObject addedObject = null;
-      for (Axis a: axisList) {
-        addedObject = a.addTuioObject(tobj);
-      }
-      if (addedObject == null) {
-        Axis axis = new Axis(tobj);
-        axisList.add(axis);
-      }
-    }
-  }
-}
-
-//Generate the coordinate positions for all dust particles and set them
-void generateAxisPositions() {
-  println("Generating axis positions outer loop");
-  if (axisList.size() == 1) {
-    println("Only one axis");
-    Axis a = axisList.get(0);
-    if (a.isFull()) 
-      for (int i = 0; i < datapoints.length; i++) {
-        datapoints[i].setDest(a.getDestinationAlongAxis(datapoints[i]));
-      }
-  }
-  else
-    for (int i = 0; i < axisList.size(); i++) {
-      Axis a = axisList.get(i); 
-
-      if (a.isFull()) {    
-        pt a0 = P(a.start.getX()*screenWidth, a.start.getY()* screenHeight);
-        pt a1 = P(a.end.getX()*screenWidth, a.end.getY()* screenHeight);
-        pt aM = P(a0, a1);
-
-        for (int j = i+1; j < axisList.size(); j++) {
-          Axis b = axisList.get(j);    
-          if (b.isFull()) {
-            println("Generating axis positions");
-            pt b0 = P(b.start.getX()*screenWidth, b.start.getY()* screenHeight);
-            pt b1 = P(b.end.getX()*screenWidth, b.end.getY()* screenHeight);
-            pt bM = P(b0, b1);
-            float d = d(aM, bM);
-            println("Distance " + d);
-            vec U = U(a0, a1);
-            vec V = U(b0, b1);
-            float dp = dot(U, V);
-            println("Testing right angle " + dp);
-            //Determine if the two axes are close to a right angle. If so, they should create a scatterplot.
-            if (d < 300 && abs(dp) < .2) {
-              if (d(a0, b0) < d(a0, b1)) {
-                pt temp = P(b0);
-                b0 = P(b1);
-                b1 = P(temp);                
-                V = U(b0, b1);
-                dp = dot(U, V);
-              }
-              else if (d(b0, a0) < d(b0, a1)) {
-                pt temp = P(a0);
-                a0 = P(a1);
-                a1 = P(temp);                
-                U = U(a0, a1);
-                dp = dot(U, V);
-              }
-              println("right angle " + dp);
-
-              //              pt v0 = P(a0.add(P(-1, a1)));
-              //              pt v1 = P(b0.add(P(-1, b1)));
-              //
-              //              //Project the datapoint into the two dimensional space defined by the axes
-              //              float[][] matrix = {
-              //                {
-              //                  v0.x, v1.x
-              //                }
-              //                , {
-              //                  v0.y, v1.y
-              //                }
-              //              };
-
-              for (int k = 0; k < datapoints.length; k++) {
-                pt A = a.getDestinationAlongAxis(datapoints[k]);
-                pt B = b.getDestinationAlongAxis(datapoints[k]);
-
-                //                pt scoords = P(datapoints[k].getNormalizedValue(a.attribute), datapoints[k].getNormalizedValue(b.attribute));           
-                //                pt projected = P(matrix[0][0]*scoords.x+matrix[0][1]*scoords.y, matrix[1][0]*scoords.x+matrix[1][1]*scoords.y);
-                //                vec rV = R(V(projected), angle(V(P(a0,b0)))); 
-                //                projected = P(rV.x, rV.y);
-                //                projected = projected.add(P(a0,b0)); 
-                datapoints[k].setDest(A.add(B).add(P(-1, b1)));
-                //                datapoints[k].setDest(projected);
-              }
-            }      
-
-            dp = dot(U, R(V));
-            println("Testing parallel angle " + dp);
-            //Otherwise, determine if the two axes are parallel. If so, they should create a parallel coordinate plot.
-            if (abs(dp) < .2) {
-              println("parallel " + dp);
-            }
-
-            //Need to compose bounding boxes for each plot and test for collisions.
-          }
-        }
-      }
-    }
-}
-
 // called when an object is removed from the scene
+// void removeTuioObject(TuioObject tobj) {
+//   println("remove object "+tobj.getSymbolID()+" ("+tobj.getSessionID()+")");
+//   fiducialIn = false;
+//   fiducialId = 0;
+//   int id = tobj.getSymbolID();
+//   if (id < 119 && id > 110) {
+//     createAxisList();
+//     generateAxisPositions();
+//   }
+// }
+
 void removeTuioObject(TuioObject tobj) {
   println("remove object "+tobj.getSymbolID()+" ("+tobj.getSessionID()+")");
   fiducialIn = false;
@@ -389,17 +313,29 @@ void removeTuioObject(TuioObject tobj) {
   }
 }
 
-
-
-
 // called when an object is moved
-void updateTuioObject (TuioObject tobj) {
-  int id = tobj.getSymbolID();
+// void updateTuioObject (TuioObject tobj) {
+//   int id = tobj.getSymbolID();
 
+//   //  println("update object "+id+" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" "+tobj.getAngle()
+//   //    +" "+tobj.getMotionSpeed()+" "+tobj.getRotationSpeed()+" "+tobj.getMotionAccel()+" "+tobj.getRotationAccel());
+//   pt fidPt = P(tobj.getX()*screenWidth, tobj.getY()*screenHeight);
+//   //
+//   if (id<9 && id>0) {
+//     //Calculate the vector from each datapoint to the fiducial and move it
+//     //Will need to be updated to update all datapoints in all sets (even lines)
+//     for (int i = 0; i < datapoints.length; i++) {
+//       datapoints[i].setvec(fidPt, idToAttr.get(id));
+//       datapoints[i].move(speed);
+//     }
+//   }
+//   else if (id < 119 && id > 110) {
+//     generateAxisPositions();
+//   }
+// }
 
-  //    println("update object "+id+" ("+tobj.getSessionID()+") "+tobj.getX()+" "+tobj.getY()+" angle: "+tobj.getAngle()
-  //      +" "+tobj.getMotionSpeed()+" "+tobj.getRotationSpeed()+" "+tobj.getMotionAccel()+" "+tobj.getRotationAccel());
-
+void updateTuioObject (TuioObject tobj){
+  int id  = tobj.getSymbolID();
   pt fidPt = P(tobj.getScreenX(width), tobj.getScreenY(height));
 
   if (idToAttr.containsKey(id)) {
@@ -426,7 +362,227 @@ void updateTuioObject (TuioObject tobj) {
       }
     }
   }
-  
+}
+
+//When an object is added or removed, we need to establish the current set of
+//axes on the display. Synchronized with the axes draw method to avoid concurrent 
+//modification issues
+synchronized void createAxisList() {
+  axisList.clear();
+  Vector tuioObjectList = tuioClient.getTuioObjects();
+  for (int i=0;i<tuioObjectList.size();i++) {
+    TuioObject tobj = (TuioObject)tuioObjectList.elementAt(i);
+    int id = tobj.getSymbolID();
+    if (id > 110 && id < 119) {
+      TuioObject addedObject = null;
+      for (Axis a: axisList) {
+        addedObject = a.addTuioObject(tobj);
+      }
+      if (addedObject == null) {
+        Axis axis = new Axis(tobj);        
+        axisList.add(axis);
+      }
+    }
+  }
+}
+
+//Generate the coordinate positions for all dust particles and set them
+void generateAxisPositions() {
+
+  for (Axis a: axisList)
+    a.paired = false;
+
+  for (int i = 0; i < axisList.size(); i++) {
+    Axis a = axisList.get(i); 
+
+    if (a.isFull()) {    
+      pt a0 = P(a.start.getX()*screenWidth, a.start.getY()* screenHeight);
+      pt a1 = P(a.end.getX()*screenWidth, a.end.getY()* screenHeight);
+      pt aM = P(a0, a1);
+
+      for (int j = i+1; j < axisList.size(); j++) {
+        Axis b = axisList.get(j);    
+        if (b.isFull()) {
+          pt b0 = P(b.start.getX()*screenWidth, b.start.getY()* screenHeight);
+          pt b1 = P(b.end.getX()*screenWidth, b.end.getY()* screenHeight);
+          println("a: " + a0.x + "," + a0.y + " : " + a1.x + "," + a1.y);
+          println("b: " + b0.x + "," + b0.y + " : " + b1.x + "," + b1.y);
+          pt bM = P(b0, b1);
+          float d = d(aM, bM);
+          println("Distance " + d);
+          vec U = U(a0, a1);
+          vec V = U(b0, b1);
+          float dp = dot(U, V);
+          //Determine if the two axes are close to a right angle. If so, they should create a scatterplot.
+          if (d < 300 && abs(dp) < .2) {
+            a.paired = true;
+            b.paired = true;
+
+            println("right angle " + dp);      
+
+            //find the origin of the coordinate system defined by the scatterplot axes (line-line intersection)        
+            origin  = linelineintersection(a0, a1, b0, b1);
+
+            //Determine that the new origin does not lay on within either of the two line segments
+            boolean isBetween = isBetween(a0, a1, origin) || isBetween(b0, b1, origin);
+
+            println(origin.x + " " + origin.y + " " + isBetween);            
+
+            //find length of each axis (distance from endpoints to the new origin
+            pt aNear, aFar;
+            pt bNear, bFar;
+
+            if (d(a0, origin) > d(a1, origin)) {
+              aFar = a0;
+              aNear = a1;
+            }
+            else {
+              aFar = a1;
+              aNear = a0;
+            }
+
+            if (d(b0, origin) > d(b1, origin)) {
+              bFar = b0;
+              bNear = b1;
+            }
+            else {
+              bFar = b1;
+              bNear = b0;
+            }
+
+            float aScale = d(origin, aFar);
+            float bScale = d(origin, bFar);              
+
+            //find angle between axes 
+            float angle = angle(V(aFar, origin), V(bFar, origin));
+
+            //Should be able to determine direction based on angle...
+
+            //            float shear = 1/tan(angle);
+            //
+            //            float[][] sMatrix = {
+            //              {
+            //                1+shear*shear, shear
+            //              }
+            //              , {
+            //                shear, 1
+            //              }
+            //            };
+
+            //find angle from new axes to origin
+            pt ave = P(aFar, bFar);
+            vec aveV = V(origin, ave);
+            vec identity = U(V(1.0f, 1.0f));
+            float rotate = angle(U(aveV), identity);              
+
+            for (int k = 0; k < datapoints.length; k++) {
+              pt plot;
+              if (angle > 0) {
+                plot = P(datapoints[k].getNormalizedValue(a.attribute), datapoints[k].getNormalizedValue(b.attribute));
+                plot.scale(aScale, bScale);            
+              }
+              else {
+                plot = P(datapoints[k].getNormalizedValue(b.attribute), datapoints[k].getNormalizedValue(a.attribute));
+                plot.scale(bScale, aScale);
+              }
+              //              plot = multMatrix(sMatrix, plot);
+
+              plot.rotate(rotate);
+              plot.add(origin);                                
+              datapoints[k].setDest(plot);
+              datapoints[k].line = false;
+            }
+          }
+          else if (d < 300 && abs(dot(U, R(V))) < .2) {
+            //Otherwise, determine if the two axes are parallel. If so, they should create a parallel coordinate plot.
+            println("parallel " + dp);
+            a.paired = true;
+            b.paired = true;
+            for (int k = 0; k < datapoints.length; k++) {
+              datapoints[k].line = true;
+              datapoints[k].loc = a.getDestinationAlongAxis(datapoints[k]);
+              datapoints[k].setDest(b.getDestinationAlongAxis(datapoints[k]));
+            }
+          }
+          //Need to compose bounding boxes for each plot and test for collisions?
+        }
+      }
+      //Fill unpaired axes as number lines
+      if (a.isFull() && !a.paired)                     
+        for (int j = 0; j < datapoints.length; j++) {
+          datapoints[j].setDest(a.getDestinationAlongAxis(datapoints[j]));
+        }
+    }
+  }
+}
+
+
+//Returns the point of intersection between two lines. 
+//Returns null if the lines are parallel.
+pt linelineintersection(pt a0, pt a1, pt b0, pt b1) {
+  pt intersect = null;
+  double x1 = a0.x, x2 = a1.x, x3 = b0.x, x4 = b1.x;
+  double y1 = a0.y, y2 = a1.y, y3 = b0.y, y4 = b1.y;          
+  double denom = det(x1-x2, y1-y2, x3-x4, y3-y4);
+
+  //  println(xNum + " / " + denom + ", " + yNum + " / " + denom);              
+  if (denom != 0) {
+    double xNum = det(det(x1, y1, x2, y2), x1-x2, det(x3, y3, x4, y4), x3-x4);
+    double yNum = det(det(x1, y1, x2, y2), y1-y2, det(x3, y3, x4, y4), y3-y4);
+    double originX = xNum / denom;
+    double originY = yNum / denom;
+
+    intersect  = P((float)originX, (float)originY);
+  }
+  return intersect;
+}
+
+//multiply a point by a 2x2 matrix
+pt multMatrix(float[][] matrix, pt p) {
+  pt result = P(matrix[0][0]*p.x + matrix [0][1]*p.y, matrix[1][0]*p.x+matrix[1][1]*p.y);
+  return result;
+}
+
+
+//determine if a point exists on a line. the line is defined by two points.
+boolean pointOnLine(pt l1, pt l2, pt a) {
+  float m = (l2.y - l1.y) / (l2.x - l1.x);
+  boolean pointOnLine = false;
+  if (a.y == m*(a.x - l1.x) + l1.y)
+    pointOnLine = true;
+  return pointOnLine;
+}
+
+
+//determinant of two points
+double det(pt a, pt b) {
+  return det(a.x, b.x, a.y, b.y);
+}
+
+//determinant of a matrix [a,b,c,d]
+double det(double a, double b, double c, double d) {
+  return a*d-b*c;
+}
+
+//determine if point C is aligned with and between points A & B
+//doesn't seem to always work terribly well.
+boolean isBetween(pt A, pt B, pt C) {
+  double epsilon = 1E-14;
+  boolean isBetween = true;
+  double crossProduct = (C.y - A.y) * (B.x - A.x) - (C.x - A.x) * (B.y - A.y);
+  //  println(crossProduct + " " + epsilon);  
+  if (crossProduct > epsilon)
+    return false;
+  double dotProduct = (C.x - A.x) * (B.x - A.x) + (C.y - A.y)*(B.y - A.y);
+  //  println(dotProduct + " " + epsilon);  
+  if (dotProduct < 0 )
+    return false;
+  double squaredLengthBA = (B.x - A.x)*(B.x - A.x) + (B.y - A.y)*(B.y - A.y);
+  //  println(squaredLengthBA + " " + epsilon);  
+  if (dotProduct > squaredLengthBA)
+    return false;
+  return isBetween;
+
 }
 
 // called when a cursor is added to the scene
@@ -448,8 +604,20 @@ void removeTuioCursor(TuioCursor tcur) {
 // called after each message bundle
 // representing the end of an image frame
 void refresh(TuioTime bundleTime) { 
-  redraw();
+  //  redraw();
 }
+
+
+//public class Plot {
+//  Axis a, b;
+//  DataPoint[] set;
+//  
+//  public Plot (Axis x, Axis y, DataPoint[] data){
+//   a = x;
+//   b = y; 
+//   set = new DataPoint[data.length];
+//  }
+//}
 
 
 
@@ -458,6 +626,7 @@ public class Axis {
 
   int symbolID;
   String attribute; 
+  boolean paired = false;
 
   public Axis (TuioObject tobj) {
     symbolID = tobj.getSymbolID();
@@ -483,7 +652,7 @@ public class Axis {
     return attribute;
   }
 
-  synchronized TuioObject addTuioObject(TuioObject tobj) {
+  TuioObject addTuioObject(TuioObject tobj) {
     TuioObject addedObject = null;
     if (tobj.getSymbolID() == symbolID) {
       if (start == null && tobj.getAngle() - end.getAngle() < PI / 10) {
@@ -498,7 +667,7 @@ public class Axis {
     return addedObject;
   }
 
-  synchronized void removeTuioObject(TuioObject tobj) {
+   void removeTuioObject(TuioObject tobj) {
     if (tobj.getSymbolID() == symbolID) {
       if (start == tobj) {
         start = null;
@@ -526,7 +695,7 @@ public class Axis {
     return isFull;
   }
 
-  synchronized void draw() {
+   void draw() {
     if (isFull()) {
       pt xy0 = P(start.getX()*screenWidth, start.getY()* screenHeight);
       pt xy1 = P(end.getX()*screenWidth, end.getY()* screenHeight);  
@@ -535,6 +704,34 @@ public class Axis {
       fill(100);
       stroke(0);
       line(xy0.x, xy0.y, xy1.x, xy1.y);
+      stroke(200);
+
+      for (float i = 0; i <= 1; i+=.1f) {
+        pt m0 = L(xy0, xy1, i);
+        pt m1 = L(xy0, xy1, i+.05);       
+        pt r = P(m1);
+        r.rotate(HALF_PI, m0); 
+        line(m0.x, m0.y, r.x, r.y);
+      }
+
+      for (float i = 0; i <= 1; i+=.25f) {
+        pt m0 = L(xy0, xy1, i);
+        pt m1 = L(xy0, xy1, i+.1);       
+        pt r = P(m1);
+        r.rotate(HALF_PI, m0); 
+        line(m0.x, m0.y, r.x, r.y);
+      }
+
+      for (float i = 0; i <= 1; i+=.05f) {
+        pt m0 = L(xy0, xy1, i);
+        pt m1 = L(xy0, xy1, i+.025);       
+        pt r = P(m1);
+        r.rotate(HALF_PI, m0); 
+        line(m0.x, m0.y, r.x, r.y);
+      }
+
+      //Need text labels for the endpoints, perhaps the quarter increment labels.
+
       fill(255, 0, 0);
       popStyle();
     }
