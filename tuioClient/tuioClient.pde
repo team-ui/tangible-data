@@ -62,7 +62,7 @@ ArrayList<String> availableAttr; //Contains a list of attributes which can be as
 
 menu fieldsMenu; //The object of the menu class, used to show the list of attributes
 int menuFiducial = 12; //The id of the fiducial which brings up the menu
-int pointyFiducial = 31; // The name says it all
+int pointyFiducial = 13; // The name says it all
 
 
 void setup()
@@ -72,7 +72,7 @@ void setup()
   noStroke();
   fill(0);
   smooth();
-  
+
   //font = loadFont("DroidSerif-Italic-48.vlw");
 
   loop();
@@ -104,6 +104,12 @@ void setup()
   idToAttr.put(111, "calories"); 
   idToAttr.put(112, "proteins"); 
   idToAttr.put(113, "fats");
+  idToAttr.put(114, "sodium"); 
+  idToAttr.put(115, "fiber"); 
+  idToAttr.put(116, "carbs");
+  idToAttr.put(117, "sugars"); 
+  idToAttr.put(118, "potassium"); 
+  idToAttr.put(119, "vitamins");
 
 
 
@@ -114,14 +120,15 @@ void setup()
   for (int i = 0; i < datapoints.length; i++) {
     datapoints[i].setloc("fats", "fiber", screenWidth/2);
     datapoints[i].fillNorm(cereals.min, cereals.range);
+    //    datapoints[i].fillNorm(cereals.min, cereals.range);
   }
-  
+
   closestPoint = 0;
 
   fieldsMenu = new menu(this, availableAttr); //pass the data-field names to the menu
   fieldsMenu.hide();                          //Keep the menu hidden initially
   pointSets = new ArrayList<DataPoint[]>();
-  pointSets.add(datapoints);
+  //  pointSets.add(datapoints);
 }
 
 // within the draw method we retrieve a Vector (List) of TuioObject and TuioCursor (polling)
@@ -136,10 +143,10 @@ void draw()
 
   text("No of points:"+datapoints.length, 10, 30);
 
-//  pushStyle();
-//  fill(0, 150, 0);
-//  ellipse(origin.x, origin.y, 10, 10);  
-//  popStyle();
+  //  pushStyle();
+  //  fill(0, 150, 0);
+  //  ellipse(origin.x, origin.y, 10, 10);  
+  //  popStyle();
 
   pushStyle();
   tuioObjectList = tuioClient.getTuioObjects();
@@ -148,35 +155,34 @@ void draw()
   for (int i=0;i<tuioObjectList.size();i++) {
     TuioObject tobj = (TuioObject)tuioObjectList.elementAt(i);
     int id = tobj.getSymbolID();
-    
-  if(id == pointyFiducial){
 
-    stroke(0,255,0);
-    strokeWeight(3);
-    //fill(0,255,0,30);
-    noFill();
-    pushMatrix();
-    translate(tobj.getScreenX(width), tobj.getScreenY(height));
-    rotate(tobj.getAngle());
-    rect(-obj_size/2, -obj_size/2, obj_size, obj_size);
-    triangle(obj_size, 0, obj_size/2, -obj_size/2, obj_size/2, obj_size/2 );
-    popMatrix();
-    fill(100);
-    
-    
-  }else if(id != menuFiducial){
-    stroke(0,255,0);
-    strokeWeight(3);
-    //fill(0,255,0,30);
-    noFill();
-    pushMatrix();
-    translate(tobj.getScreenX(width), tobj.getScreenY(height));
-    rotate(tobj.getAngle());
-    rect(-obj_size/2, -obj_size/2, obj_size, obj_size);
-    popMatrix();
-    fill(100);
-    text(""+idToAttr.get(tobj.getSymbolID()), tobj.getScreenX(width)-obj_size/2, tobj.getScreenY(height)-(obj_size/2 + 5));
-  }
+    if (id == pointyFiducial) {
+
+      stroke(0, 255, 0);
+      strokeWeight(3);
+      //fill(0,255,0,30);
+      noFill();
+      pushMatrix();
+      translate(tobj.getScreenX(width), tobj.getScreenY(height));
+      rotate(tobj.getAngle());
+      rect(-obj_size/2, -obj_size/2, obj_size, obj_size);
+      triangle(-obj_size, 0, -obj_size/2, -obj_size/2, -obj_size/2, obj_size/2 );
+      popMatrix();
+      fill(100);
+    }
+    else if (id != menuFiducial) {
+      stroke(0, 255, 0);
+      strokeWeight(3);
+      //fill(0,255,0,30);
+      noFill();
+      pushMatrix();
+      translate(tobj.getScreenX(width), tobj.getScreenY(height));
+      rotate(tobj.getAngle());
+      rect(-obj_size/2, -obj_size/2, obj_size, obj_size);
+      popMatrix();
+      fill(100);
+      text(""+idToAttr.get(tobj.getSymbolID()), tobj.getScreenX(width)-obj_size/2, tobj.getScreenY(height)-(obj_size/2 + 5));
+    }
   }
 
   popStyle();
@@ -191,7 +197,7 @@ void draw()
     if (pointList.size()>0) {
       stroke(0, 0, 255);
       TuioPoint start_point = (TuioPoint)pointList.firstElement();
-      
+
       for (int j=0;j<pointList.size();j++) {
         TuioPoint end_point = (TuioPoint)pointList.elementAt(j);
         line(start_point.getScreenX(width), start_point.getScreenY(height), end_point.getScreenX(width), end_point.getScreenY(height));
@@ -222,29 +228,48 @@ void draw()
   text("No of points:"+datapoints.length, 10, 30);
   pushStyle();
   checkAssign();    //Check if it is possible to assign a value to the fiducial
-  fill(0, 128, 255,80);                     //Blue, with a slight transparency
-  stroke(0,200);
+  
+  fill(0, 128, 255, 80);                     //Blue, with a slight transparency
+  stroke(0, 200);
 
-  for (DataPoint[] set : pointSets) {
+  synchronized(this) {
+    
+    
+    
+    for (DataPoint[] set : pointSets) {
+      //Loop to display each datapoint on screen
+      for (int i = 0; i < set.length; i++) {
+        //  strokeWeight (10 - (i*10)/cereals.length);
+        //  stroke(i*3,i*2,i);
+        //  float x = (columns[i][0]*screenWidth)/200;
+        //  float y = (columns[i][1]*screenHeight)/8;
+        //    datapoints[i].move(speed);
+        set[i].updateAndMove(10);      
+        
+        
+        //
+        if (i == closestPoint && showPtInfo) {
+          
+          if(set[i].line){
+            stroke(0, 128, 255);
+            strokeWeight(2);
+          }
+          else
+            set[i].showInfo();           
+          set[i].showpt();  
+        }
+        else{
+          if(set[i].line){
+            stroke(0,80);
+           strokeWeight(1); 
+          }         
+          set[i].showpt();  
+        }        
 
-    //Loop to display each datapoint on screen
-    for (int i = 0; i < set.length; i++) {
-      //  strokeWeight (10 - (i*10)/cereals.length);
-      //  stroke(i*3,i*2,i);
-      //  float x = (columns[i][0]*screenWidth)/200;
-      //  float y = (columns[i][1]*screenHeight)/8;
-      //    datapoints[i].move(speed);
-      set[i].updateAndMove(10);      
-      set[i].showpt();
-
-      //
-      if(i == closestPoint && showPtInfo){
-        datapoints[i].showInfo();
-      }
-
-      //Show the scaled vector from each datapoint to the fiducial
-      if (fiducialIn) {
-        datapoints[i].showvec();
+        //Show the scaled vector from each datapoint to the fiducial
+//        if (fiducialIn) {
+//          datapoints[i].showvec();
+//        }
       }
     }
   }
@@ -261,25 +286,27 @@ void addTuioObject(TuioObject tobj) {
 
 
   if (idToAttr.containsKey(id)) {
-    
-    if (id<9 && id>0){
-    //Calculate the vector from each datapoint to the fiducial
-    if (pointSets.isEmpty())
-      pointSets.add(datapoints);
-    for (DataPoint[] set : pointSets) {
-      for (int i = 0; i < set.length; i++) {
-        set[i].setvec(fidPt, idToAttr.get(id));
-      }
-    }
 
-    //Set a flag indicating that a fiducial is present
-    fiducialIn = true;
-    fiducialId = tobj.getSymbolID();
-    }else if (id < 119 && id > 110) {
-    createAxisList();
-    generateAxisPositions();
-  }
-  } else if (id == pointyFiducial){
+    if (id<9 && id>0) {
+      //Calculate the vector from each datapoint to the fiducial
+      if (pointSets.isEmpty())
+        pointSets.add(copyDataPoints(datapoints));
+      for (DataPoint[] set : pointSets) {
+        for (int i = 0; i < set.length; i++) {
+          set[i].setvec(fidPt, idToAttr.get(id));
+        }
+      }
+
+      //Set a flag indicating that a fiducial is present
+      fiducialIn = true;
+      fiducialId = tobj.getSymbolID();
+    }
+    else if (id < 119 && id > 110) {
+      createAxisList();
+      generateAxisPositions();
+    }
+  } 
+  else if (id == pointyFiducial) {
     showPtInfo = true;
   }
 }
@@ -308,7 +335,8 @@ void removeTuioObject(TuioObject tobj) {
   }
   else if (id == menuFiducial) {        //This is the id of the "Menu/Assignment fiducial" 
     fieldsMenu.hide();
-  }else if (id == pointyFiducial){
+  }
+  else if (id == pointyFiducial) {
     showPtInfo = false;
   }
 }
@@ -334,32 +362,50 @@ void removeTuioObject(TuioObject tobj) {
 //   }
 // }
 
-void updateTuioObject (TuioObject tobj){
+void updateTuioObject (TuioObject tobj) {
   int id  = tobj.getSymbolID();
   pt fidPt = P(tobj.getScreenX(width), tobj.getScreenY(height));
 
   if (idToAttr.containsKey(id)) {
-    if (id<9 && id>=0){
-    //Calculate the vector from each datapoint to the fiducial and move it
-    for (int i = 0; i < datapoints.length; i++) {
-      datapoints[i].setvec(fidPt, idToAttr.get(id));
-      datapoints[i].move(speed);
-    }}else if (id < 119 && id > 110) {
-    generateAxisPositions();
+    if (id<9 && id>=0) {
+      //Calculate the vector from each datapoint to the fiducial and move it
+      if (pointSets.isEmpty())
+        pointSets.add(copyDataPoints(datapoints));
+        
+      for (DataPoint[] set : pointSets) {
+        for (int i = 0; i < set.length; i++) {
+          set[i].setvec(fidPt, idToAttr.get(id));
+          set[i].move(speed);
+        }
+      }
+    }
+    else if (id < 119 && id > 110) {
+      generateAxisPositions();
+    }
   }
-  }else if (id == menuFiducial) {
+  else if (id == menuFiducial) {
     fieldsMenu.show(tobj.getScreenX(width)+ object_size/2, tobj.getScreenY(height));                      //Align the menu to the right of the menu fiducial
-    
-  }else if (id == pointyFiducial){
+  }
+  else if (id == pointyFiducial) {
     
     pt closestPt = new pt();
-    pt fidLoc = P(tobj.getScreenX(width)+object_size, tobj.getScreenY(height)); // The mid-right edge of fiducial
+    pt fidLoc = P(tobj.getScreenX(width), tobj.getScreenY(height)); // The mid-right edge of fiducial
+//    triangle(obj_size, 0, obj_size/2, -obj_size/2, obj_size/2, obj_size/2 );
+    pt ray = P(0, -object_size);
+    ray = ray.add(fidLoc);
+    float angle = tobj.getAngle();
+    ray = R(ray, angle + HALF_PI, fidLoc);  
+   
     
-    for(int i = 0; i< datapoints.length; i++){
-      if( (d(fidLoc, datapoints[i].loc)) < (d(fidLoc, closestPt)) ){
-        closestPt = datapoints[i].loc;
+//    ray.show();
+   
+    for(DataPoint[] set: pointSets){
+    for (int i = 0; i< set.length; i++) {
+      if ( (d(ray, set[i].loc)) < (d(ray, closestPt)) ) {
+        closestPt = set[i].loc;
         closestPoint = i;
       }
+    }
     }
   }
 }
@@ -386,8 +432,22 @@ synchronized void createAxisList() {
   }
 }
 
+
+DataPoint[] copyDataPoints(DataPoint[] set) {
+  DataPoint[] copiedSet = new DataPoint[set.length];
+
+  for (int i = 0; i < copiedSet.length; i++) {
+    copiedSet[i] = new DataPoint(set[i]);
+  }
+
+  return copiedSet;
+}
+
 //Generate the coordinate positions for all dust particles and set them
-void generateAxisPositions() {
+synchronized void generateAxisPositions() {
+
+//  pointSets.clear();
+  ArrayList<DataPoint[]> tempList = new ArrayList<DataPoint[]>();
 
   for (Axis a: axisList)
     a.paired = false;
@@ -413,8 +473,9 @@ void generateAxisPositions() {
           vec U = U(a0, a1);
           vec V = U(b0, b1);
           float dp = dot(U, V);
+          float activationDistance = 300;
           //Determine if the two axes are close to a right angle. If so, they should create a scatterplot.
-          if (d < 300 && abs(dp) < .2) {
+          if (d < activationDistance*1.5 && abs(dp) < .2) {
             a.paired = true;
             b.paired = true;
 
@@ -473,46 +534,73 @@ void generateAxisPositions() {
             pt ave = P(aFar, bFar);
             vec aveV = V(origin, ave);
             vec identity = U(V(1.0f, 1.0f));
-            float rotate = angle(U(aveV), identity);              
+            float rotate = angle(U(aveV), identity);   
 
-            for (int k = 0; k < datapoints.length; k++) {
+            DataPoint[] copiedSet = copyDataPoints(datapoints);           
+
+            for (int k = 0; k < copiedSet.length; k++) {
               pt plot;
               if (angle > 0) {
-                plot = P(datapoints[k].getNormalizedValue(a.attribute), datapoints[k].getNormalizedValue(b.attribute));
-                plot.scale(aScale, bScale);            
+                plot = P(copiedSet[k].getNormalizedValue(a.attribute), copiedSet[k].getNormalizedValue(b.attribute));
+                plot.scale(aScale, bScale);
               }
               else {
-                plot = P(datapoints[k].getNormalizedValue(b.attribute), datapoints[k].getNormalizedValue(a.attribute));
+                plot = P(copiedSet[k].getNormalizedValue(b.attribute), copiedSet[k].getNormalizedValue(a.attribute));
                 plot.scale(bScale, aScale);
               }
               //              plot = multMatrix(sMatrix, plot);
 
               plot.rotate(rotate);
               plot.add(origin);                                
-              datapoints[k].setDest(plot);
-              datapoints[k].line = false;
+              copiedSet[k].setDest(plot);
+              copiedSet[k].line = false;
             }
+            tempList.add(copiedSet);
           }
-          else if (d < 300 && abs(dot(U, R(V))) < .2) {
+          else if (d < activationDistance && abs(dot(U, R(V))) < .2) {
             //Otherwise, determine if the two axes are parallel. If so, they should create a parallel coordinate plot.
             println("parallel " + dp);
             a.paired = true;
             b.paired = true;
-            for (int k = 0; k < datapoints.length; k++) {
-              datapoints[k].line = true;
-              datapoints[k].loc = a.getDestinationAlongAxis(datapoints[k]);
-              datapoints[k].setDest(b.getDestinationAlongAxis(datapoints[k]));
+            DataPoint[] copiedSet = copyDataPoints(datapoints);
+
+            for (int k = 0; k < copiedSet.length; k++) {
+              copiedSet[k].line = true;
+              copiedSet[k].loc = a.getDestinationAlongAxis(copiedSet[k]);
+              copiedSet[k].setDest(b.getDestinationAlongAxis(copiedSet[k]));
             }
+
+            tempList.add(copiedSet);
           }
           //Need to compose bounding boxes for each plot and test for collisions?
         }
       }
       //Fill unpaired axes as number lines
-      if (a.isFull() && !a.paired)                     
-        for (int j = 0; j < datapoints.length; j++) {
-          datapoints[j].setDest(a.getDestinationAlongAxis(datapoints[j]));
+      if (a.isFull() && !a.paired) {       
+        DataPoint[] copiedSet = copyDataPoints(datapoints);       
+        for (int j = 0; j < copiedSet.length; j++) {
+          copiedSet[j].setDest(a.getDestinationAlongAxis(copiedSet[j]));
         }
+        tempList.add(copiedSet);
+      }
     }
+  }
+  if(pointSets.size() != tempList.size()){
+   pointSets.clear();
+   pointSets.addAll(tempList); 
+  }
+  else{
+   for(int i =0; i < pointSets.size(); i++){
+     if(tempList.get(i)[0].line)
+       pointSets.set(i, tempList.get(i));
+     else
+      for(int j = 0; j < pointSets.get(i).length; j++){
+       pointSets.get(i)[j].setDest(tempList.get(i)[j].dest);
+//       tempList.get(i)[j].setloc(pointSets.get(i)[j].loc);
+      }
+   } 
+//   pointSets.clear();
+//   pointSets.addAll(tempList); 
   }
 }
 
@@ -582,7 +670,6 @@ boolean isBetween(pt A, pt B, pt C) {
   if (dotProduct > squaredLengthBA)
     return false;
   return isBetween;
-
 }
 
 // called when a cursor is added to the scene
@@ -655,11 +742,19 @@ public class Axis {
   TuioObject addTuioObject(TuioObject tobj) {
     TuioObject addedObject = null;
     if (tobj.getSymbolID() == symbolID) {
-      if (start == null && tobj.getAngle() - end.getAngle() < PI / 10) {
+//      if (start == null && tobj.getAngle() - end.getAngle() < PI / 10) {
+//        start = tobj;
+//        addedObject = tobj;
+//      }
+//      else if (end == null && tobj.getAngle() - start.getAngle() < PI / 10) {
+//        end = tobj;
+//        addedObject = tobj;
+//      }      
+      if (start == null) {
         start = tobj;
         addedObject = tobj;
       }
-      else if (end == null && tobj.getAngle() - start.getAngle() < PI / 10) {
+      else if (end == null) {
         end = tobj;
         addedObject = tobj;
       }
@@ -667,7 +762,7 @@ public class Axis {
     return addedObject;
   }
 
-   void removeTuioObject(TuioObject tobj) {
+  void removeTuioObject(TuioObject tobj) {
     if (tobj.getSymbolID() == symbolID) {
       if (start == tobj) {
         start = null;
@@ -695,7 +790,7 @@ public class Axis {
     return isFull;
   }
 
-   void draw() {
+  void draw() {
     if (isFull()) {
       pt xy0 = P(start.getX()*screenWidth, start.getY()* screenHeight);
       pt xy1 = P(end.getX()*screenWidth, end.getY()* screenHeight);  
@@ -783,12 +878,12 @@ void checkAssign() {
     int id1 = tobj.getSymbolID();
     tobj = (TuioObject)tuioObjectList.elementAt(1);
     int id2 = tobj.getSymbolID();
-    if (id1 == menuFiducial && !idToAttr.containsKey(id2)) {
+    if (id1 == menuFiducial && !idToAttr.containsKey(id2) && id2 != pointyFiducial) {
       idToAttr.put(id2, availableAttr.get(0));
       availableAttr.remove(0);
       fieldsMenu.reDraw(availableAttr);
     }
-    else if (id2 == menuFiducial && !idToAttr.containsKey(id1)) {
+    else if (id2 == menuFiducial && !idToAttr.containsKey(id1) && id1 != pointyFiducial) {
       idToAttr.put(id1, availableAttr.get(0));
       availableAttr.remove(0);
       fieldsMenu.reDraw(availableAttr);
