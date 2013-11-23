@@ -34,6 +34,29 @@ class DataPoint {
     dataval.put("potassium", pot); 
     dataval.put("vitamins", vit);
   }   
+  
+  DataPoint (DataPoint otherPoint){    
+    name = otherPoint.name;
+    //normalizing values
+    if(otherPoint.loc != null)
+      loc = P(otherPoint.loc);
+    if(otherPoint.dest != null)
+      dest = P(otherPoint.dest);   
+      
+    v = V(otherPoint.v);
+    
+    normdata = new HashMap<String, Float>();
+    normdata.put("calories", otherPoint.getNormalizedValue("calories"));
+    normdata.put("proteins", otherPoint.getNormalizedValue("proteins"));
+    normdata.put("fats", otherPoint.getNormalizedValue("fats")); 
+    normdata.put("sodium", otherPoint.getNormalizedValue("sodium")); 
+    normdata.put("fiber", otherPoint.getNormalizedValue("fiber")); 
+    normdata.put("carbs", otherPoint.getNormalizedValue("carbs")); 
+    normdata.put("sugars", otherPoint.getNormalizedValue("sugars")); 
+    normdata.put("potassium", otherPoint.getNormalizedValue("potassium")); 
+    normdata.put("vitamins", otherPoint.getNormalizedValue("vitamins"));   
+    
+  }
 
 
   //Normalize each data in a range from 0-1
@@ -77,11 +100,18 @@ class DataPoint {
 
     loc = P(X, Y);
   } 
+  
+    //Explicitly set the location
+  void setloc(pt p) {
+//    println("Explicitly setting the location");
+
+    loc = P(p);
+  } 
 
   //move the points by a certain value
   void showpt() {
     if (!line){    
-      stroke(0);
+      stroke(0, 200);
       strokeWeight(1);
       ellipse(loc.x, loc.y, 6, 6);
     }
